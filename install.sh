@@ -58,11 +58,26 @@ fetch() {
   fi
 }
 
-if [ "$VERSION" = "latest" ] && command -v gh >/dev/null 2>&1 && [ -z "${GITHUB_TOKEN:-}" ]; then
-  tag="$(gh release view --repo "$REPO" --json tagName --jq .tagName 2>/dev/null || true)"
-else
+gh_bin=""
+if command -v gh >/dev/null 2>&1; then
+  gh_bin="gh"
+fi
+
+if [ -n "$gh_bin" ]; then
+  tag_arg=""
+  if [ "$VERSION" != "latest" ]; then
+    tag_arg="$VERSION"
+  fi
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    tag="$(GH_TOKEN="$GITHUB_TOKEN" gh release view --repo "$REPO" $tag_arg --json tagName --jq .tagName 2>/dev/null || true)"
+  else
+    tag="$(gh release view --repo "$REPO" $tag_arg --json tagName --jq .tagName 2>/dev/null || true)"
+  fi
+fi
+if [ -z "${tag:-}" ]; then
   tag="$(fetch "$release_url" | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
 fi
+[ -n "${tag:-}" ] || { echo "install.sh: could not resolve a release tag" >&2; exit 1; }
 [ -n "$tag" ] || { echo "install.sh: could not resolve a release tag" >&2; exit 1; }
 version="${tag#v}"
 asset="workbench_${version}_${os}_${arch}.tar.gz"
@@ -71,16 +86,30 @@ base="https://github.com/$REPO/releases/download/$tag"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 echo "downloading $asset"
-if [ -n "$auth" ]; then
-  curl -fsSL -H "$auth" -o "$tmp/$asset" "$base/$asset"
-  curl -fsSL -H "$auth" -o "$tmp/checksums.txt" "$base/checksums.txt" || true
-else
-  curl -fsSL -o "$tmp/$asset" "$base/$asset"
-  curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt" || true
+downloaded=0
+if [ -n "$gh_bin" ]; then
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    GH_TOKEN="$GITHUB_TOKEN" gh release download "$tag" --repo "$REPO" --pattern "$asset" --pattern checksums.txt --dir "$tmp" >/dev/null 2>&1 && downloaded=1
+  else
+    gh release download "$tag" --repo "$REPO" --pattern "$asset" --pattern checksums.txt --dir "$tmp" >/dev/null 2>&1 && downloaded=1
+  fi
+fi
+if [ "$downloaded" -eq 0 ]; then
+  if [ -n "$auth" ]; then
+    curl -fsSL -H "$auth" -o "$tmp/$asset" "$base/$asset"
+    curl -fsSL -H "$auth" -o "$tmp/checksums.txt" "$base/checksums.txt" || true
+  else
+    curl -fsSL -o "$tmp/$asset" "$base/$asset"
+    curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt" || true
+  fi
 fi
 
 if [ -s "$tmp/checksums.txt" ]; then
-  (cd "$tmp" && grep " $asset\$" checksums.txt | shasum -a 256 -c -)
+  if command -v shasum >/dev/null 2>&1; then
+    (cd "$tmp" && grep " $asset\$" checksums.txt | shasum -a 256 -c -)
+  elif command -v sha256sum >/dev/null 2>&1; then
+    (cd "$tmp" && grep " $asset\$" checksums.txt | sha256sum -c -)
+  fi
 fi
 
 mkdir -p "$tmp/unpack"
