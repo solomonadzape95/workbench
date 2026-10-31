@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "notes": "Starter labelled corpus. Add entries with a label, genre, and first language; keep humanized entries paired with their source.",
+  "entries": [
+    {
+      "file": "human_academic_en.txt",
+      "label": "human",
+      "genre": "academic",
+      "first_language": "en"
+    },
+    {
+      "file": "human_academic_l2.txt",
+      "label": "human",
+      "genre": "academic",
+      "first_language": "l2"
+    },
+    {
+      "file": "human_academic_l2_formal.txt",
+      "label": "human",
+      "genre": "academic",
+      "first_language": "l2"
+    },
+    {
+      "file": "human_business_en.txt",
+      "label": "human",
+      "genre": "business",
+      "first_language": "en"
+    },
+    {
+      "file": "human_business_l2.txt",
+      "label": "human",
+      "genre": "business",
+      "first_language": "l2"
+    },
+    {
+      "file": "ai_academic.txt",
+      "label": "ai",
+      "genre": "academic",
+      "first_language": "en"
+    },
+    {
+      "file": "ai_business.txt",
+      "label": "ai",
+      "genre": "business",
+      "first_language": "en"
+    },
+    {
+      "file": "humanized_academic.txt",
+      "label": "humanized",
+      "genre": "academic",
+      "first_language": "en",
+      "paired_with": "ai_academic.txt"
+    }
+  ]
+}
