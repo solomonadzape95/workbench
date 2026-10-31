@@ -20,11 +20,17 @@ in [`docs/humanizer.md`](./docs/humanizer.md), and the detector methodology is i
 ## Install
 
 ```sh
+brew install solomonadzape95/tap/workbench
+```
+
+Or use the release installer:
+
+```sh
 curl -fsSL https://raw.githubusercontent.com/solomonadzape95/workbench/main/install.sh | sh
 ```
 
-See [`docs/install.md`](./docs/install.md) for release archives, `go install`,
-Homebrew, and private-checkout instructions.
+See [`docs/install.md`](./docs/install.md) for release archives and
+`go install`.
 
 ## Build
 
