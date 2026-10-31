@@ -13,3 +13,15 @@ deployed to GitHub Pages by `.github/workflows/pages.yml` on changes under
 
 The visual language follows the TUI's default OpenCode theme: near-black
 panels, a single amber accent, mono type, rounded borders, and the dither mark.
+
+## Domain
+
+The site is published at `https://workbench.thesolenoid.space`. The Pages site
+has a `CNAME` for that host; the DNS provider needs one record:
+
+```text
+Type   Name        Value
+CNAME  workbench   solomonadzape95.github.io
+```
+
+Once DNS resolves, enable HTTPS in the repository's Pages settings.
