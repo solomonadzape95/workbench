@@ -1,0 +1,13 @@
+version: "2"
+
+linters:
+  # Writes to os.Stdout in the CLI are intentionally best-effort; errcheck turns
+  # every diagnostic print into a lint failure without improving behavior.
+  disable:
+    - errcheck
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -QF1001
+        - -QF1003

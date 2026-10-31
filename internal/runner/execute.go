@@ -31,7 +31,7 @@ func (r *Runner) execute(job *Job) {
 				fmt.Sprintf("job panic: %v", p), "this is a Workbench bug; the job was stopped cleanly"))
 			r.log(job, core.LevelError, "job panic: %v", p)
 		}
-		status, err, duration, metrics := job.finalize(job.ctx)
+		status, duration, metrics, err := job.finalize(job.ctx)
 		level := core.LevelInfo
 		if status == core.StatusFailed {
 			level = core.LevelError

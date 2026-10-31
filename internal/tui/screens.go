@@ -447,13 +447,6 @@ func (m App) itemGlyph(status core.ItemStatus) (string, lipgloss.Style) {
 	}
 }
 
-func (m App) progressBar(done, total, width int) string {
-	if done >= total {
-		return m.progressBarStyle(done, total, width, m.theme.success)
-	}
-	return m.progressBarStyle(done, total, width, m.theme.accent)
-}
-
 // progressBarStyle renders a dot-matrix bar: bright braille dots for work
 // completed, dim low dots for the remaining track.
 func (m App) progressBarStyle(done, total, width int, style lipgloss.Style) string {

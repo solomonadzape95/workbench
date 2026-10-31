@@ -295,7 +295,7 @@ func extractOne(
 					}
 				}
 				continue
-			case tar.TypeReg, tar.TypeRegA:
+			case tar.TypeReg:
 			default:
 				continue
 			}

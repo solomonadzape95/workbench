@@ -137,7 +137,7 @@ func proseSentences(text string) []string {
 func wordTokens(text string) []string {
 	var out []string
 	for _, field := range strings.Fields(strings.ToLower(text)) {
-		word := strings.Trim(field, `.,;:!?()[]{}<>"'“”‘’—–-/\\|@#$%^&*+=~`)
+		word := strings.Trim(field, `.,;:!?()[]{}<>"'“”‘’—–-/\|@#$%^&*+=~`)
 		word = strings.TrimSpace(word)
 		if word != "" {
 			out = append(out, word)

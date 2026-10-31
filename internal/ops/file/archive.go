@@ -143,7 +143,7 @@ func archiveOne(ctx context.Context, item core.Artifact, output, format string, 
 			return flate.NewWriter(out, level)
 		})
 		header := &zip.FileHeader{Name: item.Name(), Method: zip.Deflate}
-		header.SetModTime(info.ModTime())
+		header.Modified = info.ModTime()
 		w, err := zw.CreateHeader(header)
 		if err == nil {
 			_, err = oputil.Copy(ctx, w, in, report)

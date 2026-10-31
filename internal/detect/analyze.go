@@ -781,7 +781,7 @@ func hasContraction(text string) bool {
 }
 
 func trimWord(word string) string {
-	return strings.Trim(word, `.,;:!?()[]{}<>"'“”‘’—–-/\\|@#$%^&*+=~`)
+	return strings.Trim(word, `.,;:!?()[]{}<>"'“”‘’—–-/\|@#$%^&*+=~`)
 }
 
 func countSetWords(text string, set map[string]bool) int {

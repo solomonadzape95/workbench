@@ -132,8 +132,6 @@ var (
 	ctrlLeftKey  = tea.KeyPressMsg{Code: tea.KeyLeft, Mod: tea.ModCtrl}
 	altRightKey  = tea.KeyPressMsg{Code: tea.KeyRight, Mod: tea.ModAlt}
 	altLeftKey   = tea.KeyPressMsg{Code: tea.KeyLeft, Mod: tea.ModAlt}
-	ctrlLKey     = tea.KeyPressMsg{Code: 'l', Mod: tea.ModCtrl}
-	ctrlHKey     = tea.KeyPressMsg{Code: 'h', Mod: tea.ModCtrl}
 )
 
 func TestComposeFormIsGeneratedFromSpec(t *testing.T) {

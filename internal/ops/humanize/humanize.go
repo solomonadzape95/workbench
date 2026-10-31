@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -743,11 +742,4 @@ func Models() []core.Option {
 func Styles() []core.Option {
 	out := append([]core.Option(nil), styleOptions...)
 	return out
-}
-
-// sortModels is used by tests that want deterministic ordering.
-func sortModels(models []opencode.ModelRef) {
-	sort.SliceStable(models, func(i, j int) bool {
-		return models[i].String() < models[j].String()
-	})
 }

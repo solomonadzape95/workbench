@@ -380,7 +380,7 @@ func (j *Job) setLogPath(path string) {
 }
 
 // finalize computes the terminal job status and duration.
-func (j *Job) finalize(ctx context.Context) (core.Status, error, time.Duration, core.Metrics) {
+func (j *Job) finalize(ctx context.Context) (core.Status, time.Duration, core.Metrics, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
@@ -415,7 +415,7 @@ func (j *Job) finalize(ctx context.Context) (core.Status, error, time.Duration, 
 		duration = 0
 	}
 	j.metrics.Duration = duration
-	return j.status, j.err, duration, j.metrics
+	return j.status, duration, j.metrics, j.err
 }
 
 func (j *Job) addLog(level core.Level, message string) {

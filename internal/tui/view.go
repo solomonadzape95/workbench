@@ -62,10 +62,7 @@ func (m App) compactStatusView() string {
 
 func (m App) headerView() string {
 	rawLogo := m.logoForHeader()
-	logo := make([]string, 0, len(rawLogo))
-	for _, line := range rawLogo {
-		logo = append(logo, line)
-	}
+	logo := append([]string(nil), rawLogo...)
 	title := m.theme.title.Render("Workbench")
 	if crumb := m.breadcrumb(); crumb != "" {
 		crumb = truncate(crumb, max(m.width-18, 6))

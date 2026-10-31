@@ -83,10 +83,6 @@ func ExpandHome(path string) string {
 	return filepath.Join(home, path[2:])
 }
 
-func envOr(key, fallback string) string {
-	return envOrFunc(os.Getenv, key, fallback)
-}
-
 func envOrFunc(getenv func(string) string, key, fallback string) string {
 	if v := getenv(key); v != "" {
 		return v

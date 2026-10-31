@@ -51,7 +51,6 @@ func analyzeRhythm(text string) rhythmStats {
 	}
 
 	sentences := splitSentences(clean)
-	lengths := make([]int, 0, len(sentences))
 	run := 1
 	previous := 0
 	for _, sentence := range sentences {
@@ -61,7 +60,6 @@ func analyzeRhythm(text string) rhythmStats {
 		}
 		stats.sentences++
 		stats.words += len(words)
-		lengths = append(lengths, len(words))
 		if len(words) < 6 {
 			stats.short++
 		}

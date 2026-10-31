@@ -41,14 +41,6 @@ func (p *protector) isHeading(block string) bool {
 	return p.kind(fields[0]) == "heading"
 }
 
-func (p *protector) tokens() []string {
-	out := make([]string, len(p.values))
-	for i := range p.values {
-		out[i] = fmt.Sprintf("[[WB%d]]", i)
-	}
-	return out
-}
-
 // PromptNote explains every placeholder to the model. Without this, models
 // treat a leading placeholder as clutter and delete it while "cleaning up" the
 // document.

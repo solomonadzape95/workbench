@@ -87,9 +87,11 @@ func (m App) handleEditorKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if e.pendingClose {
 		switch key {
 		case "s", "ctrl+s":
-			if m.saveEditor() {
-				return m.closeEditor(), nil
+			next, ok := m.saveEditor()
+			if ok {
+				return next.closeEditor(), nil
 			}
+			m = next
 		case "d", "q", "ctrl+q":
 			return m.closeEditor(), nil
 		case "esc":
@@ -128,7 +130,7 @@ func (m App) handleEditorKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		return m.closeEditor(), nil
 	case "ctrl+s":
-		m.saveEditor()
+		m, _ = m.saveEditor()
 		return m, nil
 	case "ctrl+z":
 		e.buf.Undo()
@@ -199,15 +201,15 @@ func (m App) handleEditorKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m App) saveEditor() bool {
+func (m App) saveEditor() (App, bool) {
 	e := m.editor
 	if e == nil {
-		return false
+		return m, false
 	}
 	if err := e.buf.Save(); err != nil {
 		m.toast = "save: " + err.Error()
 		m.toastLevel = core.LevelError
-		return false
+		return m, false
 	}
 	e.pendingClose = false
 	if e.buf.Path() == m.opts.Paths.ConfigFile {
@@ -216,7 +218,7 @@ func (m App) saveEditor() bool {
 		m.toast = "saved " + e.buf.Path()
 	}
 	m.toastLevel = core.LevelInfo
-	return true
+	return m, true
 }
 
 func (m App) closeEditor() App {

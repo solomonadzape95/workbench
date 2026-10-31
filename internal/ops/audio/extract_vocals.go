@@ -282,7 +282,7 @@ func findStem(root, stem string) (string, error) {
 		return "", err
 	}
 	if found == "" {
-		return "", fmt.Errorf("Demucs finished but produced no %s stem", stem)
+		return "", fmt.Errorf("demucs finished but produced no %s stem", stem)
 	}
 	return found, nil
 }

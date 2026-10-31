@@ -173,7 +173,7 @@ func resizeImage(img image.Image, width, height int, mode, filter string) (image
 		return dst, nil
 
 	default: // fit
-		scale := 1.0
+		var scale float64
 		switch {
 		case width > 0 && height > 0:
 			scale = math.Min(float64(width)/float64(srcW), float64(height)/float64(srcH))
