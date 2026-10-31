@@ -1,20 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 172 44" role="img" aria-label="Workbench">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 92" role="img" aria-label="Workbench">
   <title>Workbench</title>
-  <defs>
-    <pattern id="bright" width="6" height="6" patternUnits="userSpaceOnUse">
-      <rect width="6" height="6" fill="#f5a742"/>
-      <rect x="3" y="3" width="2" height="2" fill="#d68f36"/>
-    </pattern>
-    <pattern id="mid" width="6" height="6" patternUnits="userSpaceOnUse">
-      <rect width="6" height="6" fill="#a37130"/>
-      <rect x="3" y="3" width="2" height="2" fill="#895b26"/>
-    </pattern>
-    <pattern id="dim" width="6" height="6" patternUnits="userSpaceOnUse">
-      <rect width="6" height="6" fill="#694924"/>
-      <rect x="3" y="3" width="2" height="2" fill="#51371c"/>
-    </pattern>
-  </defs>
-  <rect x="5" y="4" width="54" height="36" fill="url(#bright)"/>
-  <rect x="59" y="4" width="54" height="36" fill="url(#mid)"/>
-  <rect x="113" y="4" width="54" height="36" fill="url(#dim)"/>
+  <rect x="4" y="4" width="44" height="84" fill="#f5a742"/>
+  <rect x="48" y="4" width="44" height="84" fill="#a37130"/>
+  <rect x="92" y="4" width="44" height="84" fill="#694924"/>
 </svg>

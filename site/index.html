@@ -7,9 +7,22 @@
   <meta name="description" content="A keyboard-driven terminal workbench for converting, compressing, transcribing, and transforming local files.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://workbench.thesolenoid.space/">
+  <script>document.documentElement.classList.add("js");</script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
+    <symbol id="i-command" viewBox="0 0 24 24"><path d="m5 7 5 5-5 5M12 17h7"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></symbol>
+    <symbol id="i-audio" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="m17 10 4-2v8l-4-2z"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-9 12h6l-1 8 9-12h-6z"/></symbol>
+  </svg>
   <canvas id="dither" aria-hidden="true"></canvas>
   <div class="grain" aria-hidden="true"></div>
 
@@ -19,8 +32,8 @@
       <span>Workbench</span>
     </a>
     <nav aria-label="Primary">
-      <a href="#install" data-key="i"><span class="key">i</span> Install</a>
-      <a href="https://github.com/solomonadzape95/workbench#readme" data-key="d"><span class="key">d</span> Docs</a>
+      <a href="#install" data-key="i" data-panel="install"><span class="key">i</span> Install</a>
+      <a href="#docs" data-key="d" data-panel="docs"><span class="key">d</span> Docs</a>
       <a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span> GitHub</a>
     </nav>
   </header>
@@ -43,12 +56,12 @@
       </div>
 
       <div class="actions" aria-label="Workbench links">
-        <a href="#install" data-key="i"><span class="key">i</span><span class="name">Install</span><span class="desc">Homebrew, release binaries, or Go</span></a>
-        <a href="https://github.com/solomonadzape95/workbench#readme" data-key="d"><span class="key">d</span><span class="name">Docs</span><span class="desc">operations, pipelines, and the agent API</span></a>
+        <a href="#install" data-key="i" data-panel="install"><span class="key">i</span><span class="name">Install</span><span class="desc">Homebrew, release binaries, or Go</span></a>
+        <a href="#docs" data-key="d" data-panel="docs"><span class="key">d</span><span class="name">Docs</span><span class="desc">operations, pipelines, and the agent API</span></a>
         <a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span><span class="name">GitHub</span><span class="desc">source, issues, and releases</span></a>
-        <a href="https://github.com/solomonadzape95/workbench/releases" data-key="r"><span class="key">r</span><span class="name">Releases</span><span class="desc">v0.1.0 binaries and checksums</span></a>
-        <a href="https://github.com/solomonadzape95/workbench/blob/main/docs/agent-api.md" data-key="a"><span class="key">a</span><span class="name">Agents</span><span class="desc">HTTP API, SSE, OpenAPI, and MCP</span></a>
-        <a href="https://github.com/solomonadzape95/workbench#readme" data-key="?"><span class="key">?</span><span class="name">Help</span><span class="desc">README and keymap</span></a>
+        <a href="#releases" data-key="r" data-panel="releases"><span class="key">r</span><span class="name">Releases</span><span class="desc">v0.1.0 binaries and checksums</span></a>
+        <a href="#agents" data-key="a" data-panel="agents"><span class="key">a</span><span class="name">Agents</span><span class="desc">HTTP API, SSE, OpenAPI, and MCP</span></a>
+        <a href="#help" data-key="?" data-panel="help"><span class="key">?</span><span class="name">Help</span><span class="desc">README and keymap</span></a>
       </div>
 
       <div class="install" id="install">
@@ -70,27 +83,197 @@
         <section class="panel">
           <h2>What it does</h2>
           <div class="capabilities">
-            <div class="cap"><span class="cap-key">image</span><span>convert · resize · crop · remove bg · upscale</span></div>
-            <div class="cap"><span class="cap-key">audio</span><span>normalize · transcribe · vocals · instrumental</span></div>
-            <div class="cap"><span class="cap-key">video</span><span>trim · compress · concat · transcribe</span></div>
-            <div class="cap"><span class="cap-key">document</span><span>OCR · split · translate · summarize</span></div>
-            <div class="cap"><span class="cap-key">file</span><span>archive · extract · hash · dedupe</span></div>
+            <div class="cap"><svg class="icon"><use href="#i-image"></use></svg><span class="cap-key">image</span><span>convert · resize · crop · remove bg · upscale</span></div>
+            <div class="cap"><svg class="icon"><use href="#i-audio"></use></svg><span class="cap-key">audio</span><span>normalize · transcribe · vocals · instrumental</span></div>
+            <div class="cap"><svg class="icon"><use href="#i-video"></use></svg><span class="cap-key">video</span><span>trim · compress · concat · transcribe</span></div>
+            <div class="cap"><svg class="icon"><use href="#i-doc"></use></svg><span class="cap-key">document</span><span>OCR · split · translate · summarize</span></div>
+            <div class="cap"><svg class="icon"><use href="#i-file"></use></svg><span class="cap-key">file</span><span>archive · extract · hash · dedupe</span></div>
             <p class="note">65 operations · five domains · one binary.</p>
           </div>
         </section>
       </div>
     </section>
+
+    <section class="section" data-reveal>
+      <p class="eyebrow">Three ways in</p>
+      <h2>Run it your way.</h2>
+      <div class="modes">
+        <article class="mode">
+          <span class="icon-tile"><svg class="icon"><use href="#i-terminal"></use></svg></span>
+          <h3>In the TUI</h3>
+          <p>Pick an operation, set a few fields, and watch the job list. The whole workbench lives in one terminal screen.</p>
+          <code>wb</code>
+        </article>
+        <article class="mode">
+          <span class="icon-tile"><svg class="icon"><use href="#i-command"></use></svg></span>
+          <h3>From a command</h3>
+          <p>Run one operation or a saved pipeline. Globs, filters, and dry runs are built in for shell work.</p>
+          <code>wb run --op image.convert --input "*.png"</code>
+        </article>
+        <article class="mode">
+          <span class="icon-tile"><svg class="icon"><use href="#i-plug"></use></svg></span>
+          <h3>From an agent</h3>
+          <p>Expose the same runner over HTTP or MCP. Start jobs, stream events, and download outputs.</p>
+          <code>wb serve &nbsp;·&nbsp; wb mcp</code>
+        </article>
+      </div>
+    </section>
+
+    <section class="section local-split" data-reveal>
+      <div>
+        <p class="eyebrow">Local by default</p>
+        <h2>Your files stay yours.</h2>
+        <p>Workbench runs on your machine and delegates to tools you control. There is no upload step and no account. Install only the engines you need; missing ones never block unrelated work.</p>
+      </div>
+      <div class="facts">
+        <div class="fact">
+          <span class="icon-tile"><svg class="icon"><use href="#i-shield"></use></svg></span>
+          <div><strong>0 uploads</strong><span>Everything runs locally.</span></div>
+        </div>
+        <div class="fact">
+          <span class="icon-tile"><svg class="icon"><use href="#i-bolt"></use></svg></span>
+          <div><strong>65 operations</strong><span>Five domains, one binary.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta" data-reveal>
+      <div>
+        <p class="eyebrow">Ready when you are</p>
+        <h2>Put it on your PATH.</h2>
+      </div>
+      <div class="cta-actions">
+        <a class="button" href="#install" data-panel="install"><span class="key">i</span> Install</a>
+        <a class="button ghost" href="#docs" data-panel="docs"><span class="key">d</span> Read the docs</a>
+      </div>
+    </section>
   </main>
 
   <footer>
-    <span><span class="key">?</span> help</span>
-    <span><a href="#install" data-key="i"><span class="key">i</span> install</a></span>
-    <span><a href="https://github.com/solomonadzape95/workbench#readme" data-key="d"><span class="key">d</span> docs</a></span>
+    <span><a href="#help" data-key="?" data-panel="help"><span class="key">?</span> help</a></span>
+    <span><a href="#install" data-key="i" data-panel="install"><span class="key">i</span> install</a></span>
+    <span><a href="#docs" data-key="d" data-panel="docs"><span class="key">d</span> docs</a></span>
     <span><a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span> github</a></span>
     <span class="muted">local-first · terminal-native</span>
   </footer>
 
+
+  <dialog id="tui" class="tui" aria-labelledby="tui-title">
+    <div class="tui-frame">
+      <div class="tui-bar">
+        <span class="header-mark" aria-hidden="true"><i class="b"></i><i class="m"></i><i class="d"></i></span>
+        <span class="tui-crumb">Workbench <span class="sep">›</span> <strong id="tui-title">Docs</strong></span>
+        <button class="tui-close" type="button" data-close>esc close</button>
+      </div>
+      <div class="tui-body" id="tui-body"></div>
+    </div>
+  </dialog>
+
+  <template id="panel-install">
+    <div class="doc">
+      <p class="doc-kicker">INSTALL</p>
+      <h2>Get Workbench</h2>
+      <p>One binary, no runtime dependencies. Optional engines are detected only when an operation needs them.</p>
+      <pre><code>brew install solomonadzape95/tap/workbench</code></pre>
+      <h3>Other routes</h3>
+      <pre><code>curl -fsSL https://raw.githubusercontent.com/solomonadzape95/workbench/main/install.sh | sh</code></pre>
+      <pre><code>go install github.com/solomonadzape95/workbench/cmd/workbench@latest</code></pre>
+      <p>Release archives for macOS and Linux, arm64 and amd64, live on <a href="https://github.com/solomonadzape95/workbench/releases" target="_blank" rel="noreferrer">GitHub Releases</a>.</p>
+      <h3>First run</h3>
+      <pre><code>wb</code></pre>
+      <p>Press <kbd>n</kbd> for a new job, <kbd>a</kbd> for the AI detector, <kbd>j</kbd> for jobs, or <kbd>?</kbd> for the keymap.</p>
+      <p class="doc-note">Requirements: macOS or Linux. Builds and release assets are produced by GoReleaser.</p>
+    </div>
+  </template>
+
+  <template id="panel-docs">
+    <div class="doc">
+      <p class="doc-kicker">README</p>
+      <h2>Workbench</h2>
+      <p>A keyboard-driven terminal workbench for local file operations: convert, compress, resize, transform, and transcribe media and documents, in batches and pipelines.</p>
+      <h3>Quick start</h3>
+      <pre><code>brew install solomonadzape95/tap/workbench
+wb
+wb run --op image.convert --input "~/Pictures/*.png" --output ~/Workbench</code></pre>
+      <h3>Operations</h3>
+      <div class="doc-grid">
+        <div><strong>image</strong><span>convert · resize · crop · remove background · upscale · watermark</span></div>
+        <div><strong>audio</strong><span>normalize · compress · trim · transcribe · isolate vocals</span></div>
+        <div><strong>video</strong><span>trim · compress · concat · thumbnail · burn subtitles</span></div>
+        <div><strong>document</strong><span>OCR · split · merge · translate · summarize · humanize</span></div>
+        <div><strong>file</strong><span>archive · extract · hash · manifest · dedupe · trash</span></div>
+      </div>
+      <h3>Pipelines</h3>
+      <p>Chain steps in the TUI with <kbd>n</kbd>, save with <kbd>ctrl+s</kbd>, and rerun with <kbd>ctrl+r</kbd>. From the shell, use a saved pipeline:</p>
+      <pre><code>wb run --pipeline podcast-package --input episode.mp4</code></pre>
+      <h3>Agents</h3>
+      <p>Run a local HTTP API or expose the same operations over MCP:</p>
+      <pre><code>wb serve --token dev-secret   # http://127.0.0.1:8765
+wb mcp                        # stdio MCP server</code></pre>
+      <p>The API includes operations, engines, pipelines, job creation, polling, SSE events, artifacts, cancel, retry, and rerun.</p>
+      <h3>Configuration</h3>
+      <p>Config lives in <code>~/.config/workbench/config.toml</code>; data, logs, undo backups, and pipelines live under <code>~/.local/share/workbench</code>.</p>
+      <p class="doc-note">Full documentation: <a href="https://github.com/solomonadzape95/workbench#readme" target="_blank" rel="noreferrer">README on GitHub</a>.</p>
+    </div>
+  </template>
+
+  <template id="panel-releases">
+    <div class="doc">
+      <p class="doc-kicker">RELEASES</p>
+      <h2>v0.1.0</h2>
+      <p>First public release. One binary, five domains, 65 operations.</p>
+      <div class="doc-assets">
+        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/workbench_0.1.0_darwin_arm64.tar.gz" target="_blank" rel="noreferrer"><span>darwin / arm64</span><span>4.7 MB</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/workbench_0.1.0_darwin_amd64.tar.gz" target="_blank" rel="noreferrer"><span>darwin / amd64</span><span>5.1 MB</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/workbench_0.1.0_linux_arm64.tar.gz" target="_blank" rel="noreferrer"><span>linux / arm64</span><span>4.6 MB</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/workbench_0.1.0_linux_amd64.tar.gz" target="_blank" rel="noreferrer"><span>linux / amd64</span><span>5.1 MB</span></a>
+      </div>
+      <p><a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/checksums.txt" target="_blank" rel="noreferrer">checksums.txt</a> · <a href="https://github.com/solomonadzape95/workbench/releases" target="_blank" rel="noreferrer">all releases</a></p>
+      <h3>Install</h3>
+      <pre><code>brew install solomonadzape95/tap/workbench</code></pre>
+      <p class="doc-note">Homebrew cask packaging and release artifacts are built by GoReleaser.</p>
+    </div>
+  </template>
+
+  <template id="panel-agents">
+    <div class="doc">
+      <p class="doc-kicker">AGENTS</p>
+      <h2>Use the same runner.</h2>
+      <p>The TUI, HTTP API, and MCP server all share one operation registry and job runner. Output naming, cancellation, engine limits, and atomic commits stay consistent.</p>
+      <h3>HTTP API</h3>
+      <pre><code>wb serve --token dev-secret
+curl -H "Authorization: Bearer dev-secret" \
+  http://127.0.0.1:8765/v1/operations</code></pre>
+      <p>Endpoints: <code>GET /v1/operations</code>, <code>POST /v1/jobs</code>, <code>GET /v1/jobs/{id}?wait=30</code>, <code>GET /v1/jobs/{id}/events</code>, <code>GET /v1/jobs/{id}/artifacts</code>, cancel, retry, and rerun.</p>
+      <h3>MCP</h3>
+      <pre><code>wb mcp</code></pre>
+      <p>Each operation becomes a <code>wb_&lt;operation_id&gt;</code> tool with typed parameters. The server implements <code>initialize</code>, <code>tools/list</code>, and <code>tools/call</code>.</p>
+      <p>Schema: <a href="https://github.com/solomonadzape95/workbench/blob/main/docs/openapi.yaml" target="_blank" rel="noreferrer">OpenAPI 3.1</a> · client: <code>pkg/apiclient</code>.</p>
+    </div>
+  </template>
+
+  <template id="panel-help">
+    <div class="doc">
+      <p class="doc-kicker">KEYMAP</p>
+      <h2>Site shortcuts</h2>
+      <div class="keys-grid">
+        <div><kbd>i</kbd><span>Install</span></div>
+        <div><kbd>d</kbd><span>Docs</span></div>
+        <div><kbd>g</kbd><span>GitHub</span></div>
+        <div><kbd>r</kbd><span>Releases</span></div>
+        <div><kbd>a</kbd><span>Agents</span></div>
+        <div><kbd>?</kbd><span>This help</span></div>
+        <div><kbd>esc</kbd><span>Close a panel</span></div>
+      </div>
+      <h3>In the TUI</h3>
+      <p><kbd>n</kbd> new job · <kbd>a</kbd> AI detector · <kbd>e</kbd> editor · <kbd>j</kbd> jobs · <kbd>s</kbd> settings · <kbd>?</kbd> full keymap.</p>
+      <p class="doc-note">The site shortcuts are intentionally separate from the TUI keys.</p>
+    </div>
+  </template>
+
   <script src="dither.js"></script>
+  <script src="tui.js"></script>
   <script src="keys.js"></script>
+  <script src="reveal.js"></script>
 </body>
 </html>

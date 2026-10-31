@@ -9,15 +9,10 @@
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     const target = event.target;
     if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    if (document.getElementById('tui')?.open) return;
     const element = shortcuts.get(event.key.toLowerCase());
     if (!element) return;
-    const href = element.getAttribute('href');
-    if (!href) return;
     event.preventDefault();
-    if (href.startsWith('#')) {
-      document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-      window.location.href = href;
-    }
+    element.click();
   });
 })();

@@ -1,12 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Workbench">
   <title>Workbench</title>
-  <defs>
-    <pattern id="b" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#f5a742"/><rect x="2" y="2" width="1" height="1" fill="#d68f36"/></pattern>
-    <pattern id="m" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#a37130"/><rect x="2" y="2" width="1" height="1" fill="#895b26"/></pattern>
-    <pattern id="d" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#694924"/><rect x="2" y="2" width="1" height="1" fill="#51371c"/></pattern>
-  </defs>
   <rect width="64" height="64" rx="10" fill="#0b0d10"/>
-  <rect x="8" y="24" width="16" height="16" fill="url(#b)"/>
-  <rect x="24" y="24" width="16" height="16" fill="url(#m)"/>
-  <rect x="40" y="24" width="16" height="16" fill="url(#d)"/>
+  <rect x="9" y="12" width="14" height="40" fill="#f5a742"/>
+  <rect x="23" y="12" width="14" height="40" fill="#a37130"/>
+  <rect x="37" y="12" width="14" height="40" fill="#694924"/>
 </svg>
