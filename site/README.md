@@ -7,9 +7,10 @@ make site
 # open http://localhost:8080
 ```
 
-`index.html`, `styles.css`, and the dither logo are the whole site. It is
-deployed to GitHub Pages by `.github/workflows/pages.yml` on changes under
-`site/`.
+`index.html`, `styles.css`, `dither.js`, `keys.js`, and the dither logo are the
+whole site. The canvas shader paints a Bayer-dithered amber field; pressing
+`i`, `d`, `g`, `r`, `a`, or `?` follows the matching link. It is deployed to
+GitHub Pages by `.github/workflows/pages.yml` on changes under `site/`.
 
 The visual language follows the TUI's default OpenCode theme: near-black
 panels, a single amber accent, mono type, rounded borders, and the dither mark.
