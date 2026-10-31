@@ -445,3 +445,21 @@ body.tui-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+.code-block { position: relative; margin: 15px 0; }
+.code-block pre { margin: 0; padding-right: 64px; }
+.code-copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  background: #0b0d10;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  line-height: 1.5;
+}
+.code-copy:hover { color: var(--accent); border-color: var(--accent-dim); }

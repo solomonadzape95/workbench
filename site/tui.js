@@ -16,6 +16,7 @@
     const template = document.getElementById(`panel-${name}`);
     if (!template) return;
     body.replaceChildren(template.content.cloneNode(true));
+    if (window.workbenchEnhanceCopy) window.workbenchEnhanceCopy(body);
     title.textContent = titles[name] || name;
     dialog.showModal();
     body.scrollTop = 0;
