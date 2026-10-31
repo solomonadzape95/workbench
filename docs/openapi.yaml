@@ -1,0 +1,564 @@
+openapi: 3.1.0
+info:
+  title: Workbench Agent API
+  version: "1"
+  description: Local HTTP API for starting file-operation jobs, watching their progress, and downloading outputs.
+servers:
+  - url: http://127.0.0.1:8765
+security:
+  - bearerAuth: []
+paths:
+  /healthz:
+    get:
+      security: []
+      operationId: health
+      responses:
+        "200":
+          description: Service health
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /v1:
+    get:
+      operationId: index
+      responses:
+        "200":
+          description: API index
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /v1/operations:
+    get:
+      operationId: listOperations
+      responses:
+        "200":
+          description: Available operations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  operations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Operation"
+  /v1/operations/{id}:
+    get:
+      operationId: getOperation
+      parameters:
+        - $ref: "#/components/parameters/OperationID"
+      responses:
+        "200":
+          description: One operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Operation"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/engines:
+    get:
+      operationId: listEngines
+      responses:
+        "200":
+          description: Engine availability
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  engines:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Engine"
+  /v1/pipelines:
+    get:
+      operationId: listPipelines
+      responses:
+        "200":
+          description: Saved pipelines
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pipelines:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PipelineMeta"
+  /v1/pipelines/{name}:
+    get:
+      operationId: getPipeline
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: One saved pipeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pipeline"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/jobs:
+    get:
+      operationId: listJobs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        "200":
+          description: Recent live and historical jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Job"
+    post:
+      operationId: createJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobRequest"
+      responses:
+        "202":
+          description: Job accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/jobs/{id}:
+    get:
+      operationId: getJob
+      parameters:
+        - $ref: "#/components/parameters/JobID"
+        - name: wait
+          in: query
+          description: Seconds to wait for a terminal state.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 60
+      responses:
+        "200":
+          description: Job snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/jobs/{id}/events:
+    get:
+      operationId: jobEvents
+      parameters:
+        - $ref: "#/components/parameters/JobID"
+      responses:
+        "200":
+          description: Server-sent job snapshots
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /v1/jobs/{id}/artifacts:
+    get:
+      operationId: listArtifacts
+      parameters:
+        - $ref: "#/components/parameters/JobID"
+      responses:
+        "200":
+          description: Output artifacts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  artifacts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ArtifactRef"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/jobs/{id}/artifacts/{n}:
+    get:
+      operationId: getArtifact
+      parameters:
+        - $ref: "#/components/parameters/JobID"
+        - name: n
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Artifact bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/jobs/{id}/cancel:
+    post:
+      operationId: cancelJob
+      parameters:
+        - $ref: "#/components/parameters/JobID"
+      responses:
+        "202":
+          description: Cancellation requested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/jobs/{id}/retry:
+    post:
+      operationId: retryJob
+      parameters:
+        - $ref: "#/components/parameters/JobID"
+      responses:
+        "202":
+          description: Retry started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /v1/jobs/{id}/rerun:
+    post:
+      operationId: rerunJob
+      parameters:
+        - $ref: "#/components/parameters/JobID"
+      responses:
+        "202":
+          description: Rerun started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "409":
+          $ref: "#/components/responses/Conflict"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    JobID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    OperationID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Request conflicts with the current job state
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            hint:
+              type: string
+            path:
+              type: string
+            operation:
+              type: string
+    Operation:
+      type: object
+      required: [id, title, domain, output]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        domain:
+          type: string
+        source:
+          type: string
+        batchable:
+          type: boolean
+        cost:
+          type: string
+        mode:
+          type: string
+        require_engines:
+          type: boolean
+        engines:
+          type: array
+          items:
+            type: string
+        accepts:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        params:
+          type: array
+          items:
+            $ref: "#/components/schemas/Param"
+        output:
+          type: object
+          additionalProperties: true
+    Param:
+      type: object
+      required: [key, type]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+        default: {}
+        options:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        required:
+          type: boolean
+        advanced:
+          type: boolean
+        min:
+          type: number
+        max:
+          type: number
+        help:
+          type: string
+    Engine:
+      type: object
+      required: [id, name, available]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+        version:
+          type: string
+        available:
+          type: boolean
+        detail:
+          type: string
+        hint:
+          type: string
+        error:
+          type: string
+    PipelineMeta:
+      type: object
+      required: [name, steps]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: integer
+        error:
+          type: string
+    Pipeline:
+      type: object
+      required: [name, version, steps]
+      properties:
+        name:
+          type: string
+        version:
+          type: integer
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/Step"
+    Step:
+      type: object
+      required: [operation]
+      properties:
+        id:
+          type: string
+        operation:
+          type: string
+        params:
+          type: object
+          additionalProperties: true
+    CreateJobRequest:
+      type: object
+      required: [inputs]
+      properties:
+        operation:
+          type: string
+        pipeline:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/Step"
+        inputs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        params:
+          type: object
+          additionalProperties: true
+        name:
+          type: string
+        output:
+          type: string
+        target:
+          $ref: "#/components/schemas/Target"
+        callback_url:
+          type: string
+          format: uri
+    Target:
+      type: object
+      properties:
+        dir:
+          type: string
+        template:
+          type: string
+        collision:
+          type: string
+          enum: [suffix, overwrite, skip, fail]
+    ArtifactRef:
+      type: object
+      required: [index, name, path, kind]
+      properties:
+        index:
+          type: integer
+        item_id:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+        kind:
+          type: string
+        format:
+          type: string
+        size:
+          type: integer
+    Job:
+      type: object
+      required: [id, name, status, percent]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        percent:
+          type: integer
+        queued_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        duration_ms:
+          type: integer
+        counts:
+          type: object
+          additionalProperties: true
+        steps:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        error:
+          type: object
+          additionalProperties: true
+        metrics:
+          type: object
+          additionalProperties: true
+        target:
+          $ref: "#/components/schemas/Target"
+        aggregate:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        logs:
+          type: array
+          items:
+            type: string
