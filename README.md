@@ -8,7 +8,7 @@ A keyboard-driven terminal workbench for file operations: convert, compress,
 resize, transform, and transcribe local media and documents, in batches, in
 parallel, with pipelines you can save and re-run.
 
-**Website:** [workbench.thesolenoid.space](https://workbench.thesolenoid.space)
+**Website:** [workbench.thesolenoid.space](http://workbench.thesolenoid.space)
 
 **Status:** M8 — an organized TUI shell with a simple home screen, a built-in
 text editor, eight theme presets with previews, and a local agent API. The product and
