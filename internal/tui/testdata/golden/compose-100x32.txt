@@ -4,7 +4,7 @@
   │ Convert image                                                                                │
   │ ▸ Input           path, glob, or @alias▏                                                     │
   │   type a path, glob (~/Pictures/*.png), or @alias                                            │
-  │   Output          /Users/solenoid/Workbench/2026-10-31                                       │
+  │   Output          /workbench/out                                                             │
   │                                                                                              │
   │ type a path or @alias · tab completes · tab / shift+tab moves focus                          │
   │                                                                                              │

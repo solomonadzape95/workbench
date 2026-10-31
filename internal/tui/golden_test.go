@@ -16,6 +16,12 @@ import (
 	"github.com/solomonadzape95/workbench/internal/runner"
 )
 
+func goldenConfig() config.Config {
+	cfg := config.Defaults()
+	cfg.Output.Dir = "/workbench/out"
+	return cfg
+}
+
 func goldenApp(t *testing.T, width, height int, opts Options) App {
 	t.Helper()
 	m := New(opts)
@@ -32,7 +38,7 @@ func TestGoldenFrames(t *testing.T) {
 		{
 			name: "home",
 			setup: func(t *testing.T, width, height int) App {
-				m := goldenApp(t, width, height, Options{Config: config.Defaults()})
+				m := goldenApp(t, width, height, Options{Config: goldenConfig()})
 				m.screen = screenHome
 				return m
 			},
@@ -40,7 +46,7 @@ func TestGoldenFrames(t *testing.T) {
 		{
 			name: "compose",
 			setup: func(t *testing.T, width, height int) App {
-				m := goldenApp(t, width, height, Options{Config: config.Defaults()})
+				m := goldenApp(t, width, height, Options{Config: goldenConfig()})
 				m.compose = newCompose(imageops.Convert{}, m.opts.Config)
 				m.screen = screenCompose
 				return m
@@ -49,7 +55,7 @@ func TestGoldenFrames(t *testing.T) {
 		{
 			name: "jobs",
 			setup: func(t *testing.T, width, height int) App {
-				m := goldenApp(t, width, height, Options{Config: config.Defaults()})
+				m := goldenApp(t, width, height, Options{Config: goldenConfig()})
 				m.jobs = []runner.JobView{
 					{
 						ID: "20260101-120000-aaaa", Name: "Web image", Status: core.StatusDone,
@@ -70,7 +76,7 @@ func TestGoldenFrames(t *testing.T) {
 		{
 			name: "editor",
 			setup: func(t *testing.T, width, height int) App {
-				m := goldenApp(t, width, height, Options{Config: config.Defaults()})
+				m := goldenApp(t, width, height, Options{Config: goldenConfig()})
 				m.screen = screenEditor
 				m.editorReturn = screenHome
 				m.editor = &editorState{
