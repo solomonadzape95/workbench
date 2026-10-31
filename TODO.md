@@ -251,10 +251,7 @@ Unlocks:
 ## Quality and release
 
 - [x] CI: run `make check` (gofmt, vet, `go test -race`) on push; add
-  `golangci-lint`. The workflow is in `ci/github-actions.yml`; copy it to
-  `.github/workflows/ci.yml` after granting the push token the `workflow`
-  scope (`gh auth refresh -h github.com -s workflow`). The repository-creation
-  token did not include that scope.
+  `golangci-lint`. `.github/workflows/ci.yml` covers both.
 - [x] Finish the GoReleaser setup and add a Homebrew tap. `.goreleaser.yaml`
   publishes `wb` and a Homebrew formula (set `HOMEBREW_TAP_GITHUB_TOKEN`).
 - [x] Windows path handling: `%APPDATA%`/`%LOCALAPPDATA%` instead of `~/.config`
