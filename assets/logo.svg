@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Workbench">
+  <rect width="256" height="256" rx="28" fill="#0b0d10"/>
+  <rect x="24" y="24" width="208" height="208" rx="18" fill="none" stroke="#26333d"/>
+  <defs>
+    <pattern id="d1" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#f5a742"/>
+      <rect x="4" y="4" width="4" height="4" fill="#2a2f38"/>
+    </pattern>
+    <pattern id="d2" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#c9872f"/>
+      <rect x="4" y="4" width="4" height="4" fill="#2a2f38"/>
+    </pattern>
+    <pattern id="d3" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#9c6b25"/>
+      <rect x="4" y="4" width="4" height="4" fill="#2a2f38"/>
+    </pattern>
+  </defs>
+  <rect x="64" y="128" width="64" height="64" fill="url(#d1)"/>
+  <rect x="128" y="128" width="64" height="64" fill="url(#d2)"/>
+  <rect x="192" y="128" width="64" height="64" fill="url(#d3)"/>
+</svg>

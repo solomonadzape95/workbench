@@ -1,0 +1,52 @@
+version: 2
+
+project_name: workbench
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: wb
+    main: ./cmd/workbench
+    binary: wb
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/solomonadzape95/workbench/internal/version.Version={{ .Version }}
+      - -X github.com/solomonadzape95/workbench/internal/version.Commit={{ .Commit }}
+      - -X github.com/solomonadzape95/workbench/internal/version.Date={{ .Date }}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+brews:
+  - repository:
+      owner: solomonadzape95
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/solomonadzape95/workbench
+    description: Keyboard-driven terminal workbench for local file operations
+    install: |
+      bin.install "wb"
+    test: |
+      system "#{bin}/wb", "version"
