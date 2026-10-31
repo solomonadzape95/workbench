@@ -1,0 +1,24 @@
+ ▓▓▓  Workbench › New job › Pipeline
+────────────────────────────────────────────────────────────────────────────────
+  ╭─ Pipeline ───────────────────────────────────────────────────────────────╮
+  │ Convert image                                                            │
+  │ ▸ Input           path, glob, or @alias▏                                 │
+  │   type a path, glob (~/Pictures/*.png), or @alias                        │
+  │   Output          /Users/solenoid/Workbench/2026-10-31                   │
+  │                                                                          │
+  │ type a path or @alias · tab completes · tab / shift+tab moves focus      │
+  │                                                                          │
+  ╰──────────────────────────────────────────────────────────────────────────╯
+  ╭─ Steps ──────────────────────────────────────────────────────────────────╮
+  │ ▸ 1. Convert image           Format PNG · JPEG quality 85                │
+  │                                                                          │
+  │ enter edit · n add · d remove · J/K move                                 │
+  │                                                                          │
+  │ Selected step                                                            │
+  │   Format        PNG                                                      │
+  │   JPEG quality  85                                                       │
+  │                                                                          │
+  ╰──────────────────────────────────────────────────────────────────────────╯
+
+────────────────────────────────────────────────────────────────────────────────
+ F1 help · tab focus / complete · ctrl+r run · ctrl+s save · ctrl+o preview ·…

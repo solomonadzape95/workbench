@@ -1,0 +1,24 @@
+ ▓▓▓  Workbench
+────────────────────────────────────────────────────────────────────────────────
+                                   ▓▓▓▓▓▓▓▓▓
+                                   ▓▓▓▓▓▓▓▓▓
+
+ ██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗██████╗ ███████╗███╗   ██╗ ██████╗██╗  ██╗
+ ██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██╔══██╗██╔════╝████╗  ██║██╔════╝██║  ██║
+ ██║ █╗ ██║██║   ██║██████╔╝█████╔╝ ██████╔╝█████╗  ██╔██╗ ██║██║     ███████║
+ ██║███╗██║██║   ██║██╔══██╗██╔═██╗ ██╔══██╗██╔══╝  ██║╚██╗██║██║     ██╔══██║
+ ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗██████╔╝███████╗██║ ╚████║╚██████╗██║  ██║
+  ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝
+
+       n  New job       convert, compress, or transform files
+       a  AI detector   estimate AI-written share and likely model
+       e  Open editor   edit text, Markdown, JSON, TOML, and configs
+       j  Jobs          running and finished work
+       s  Settings      output, theme, and config
+       ?  Help          keys and screen guide
+
+                                  Recent jobs
+                          No jobs yet. Press n to start.
+
+────────────────────────────────────────────────────────────────────────────────
+ ? help · n new job · a AI detector · e editor · j jobs · s settings · t them…
