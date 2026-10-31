@@ -1,34 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Workbench">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 172 44" role="img" aria-label="Workbench">
   <title>Workbench</title>
   <defs>
     <pattern id="bright" width="6" height="6" patternUnits="userSpaceOnUse">
       <rect width="6" height="6" fill="#f5a742"/>
-      <rect x="3" y="3" width="2" height="2" fill="#e3973a"/>
+      <rect x="3" y="3" width="2" height="2" fill="#d68f36"/>
     </pattern>
     <pattern id="mid" width="6" height="6" patternUnits="userSpaceOnUse">
       <rect width="6" height="6" fill="#a37130"/>
-      <rect x="3" y="3" width="2" height="2" fill="#8d5f28"/>
+      <rect x="3" y="3" width="2" height="2" fill="#895b26"/>
     </pattern>
     <pattern id="dim" width="6" height="6" patternUnits="userSpaceOnUse">
       <rect width="6" height="6" fill="#694924"/>
-      <rect x="3" y="3" width="2" height="2" fill="#54391d"/>
+      <rect x="3" y="3" width="2" height="2" fill="#51371c"/>
     </pattern>
   </defs>
-  <rect width="256" height="256" rx="32" fill="#0b0d10"/>
-  <rect x="12" y="12" width="232" height="232" rx="24" fill="#0f1318" stroke="#26333d"/>
-  <rect x="32" y="32" width="192" height="192" rx="18" fill="#10161c" stroke="#1c272f"/>
-  <g>
-    <g fill="url(#bright)">
-      <rect x="31" y="108" width="18" height="18" rx="3"/><rect x="53" y="108" width="18" height="18" rx="3"/><rect x="75" y="108" width="18" height="18" rx="3"/>
-      <rect x="31" y="130" width="18" height="18" rx="3"/><rect x="53" y="130" width="18" height="18" rx="3"/><rect x="75" y="130" width="18" height="18" rx="3"/>
-    </g>
-    <g fill="url(#mid)">
-      <rect x="97" y="108" width="18" height="18" rx="3"/><rect x="119" y="108" width="18" height="18" rx="3"/><rect x="141" y="108" width="18" height="18" rx="3"/>
-      <rect x="97" y="130" width="18" height="18" rx="3"/><rect x="119" y="130" width="18" height="18" rx="3"/><rect x="141" y="130" width="18" height="18" rx="3"/>
-    </g>
-    <g fill="url(#dim)">
-      <rect x="163" y="108" width="18" height="18" rx="3"/><rect x="185" y="108" width="18" height="18" rx="3"/><rect x="207" y="108" width="18" height="18" rx="3"/>
-      <rect x="163" y="130" width="18" height="18" rx="3"/><rect x="185" y="130" width="18" height="18" rx="3"/><rect x="207" y="130" width="18" height="18" rx="3"/>
-    </g>
-  </g>
+  <rect x="5" y="4" width="54" height="36" fill="url(#bright)"/>
+  <rect x="59" y="4" width="54" height="36" fill="url(#mid)"/>
+  <rect x="113" y="4" width="54" height="36" fill="url(#dim)"/>
 </svg>

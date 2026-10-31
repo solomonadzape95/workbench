@@ -19,9 +19,9 @@
       <span>Workbench</span>
     </a>
     <nav aria-label="Primary">
-      <a href="#install"><span class="key">i</span> Install</a>
-      <a href="https://github.com/solomonadzape95/workbench#readme"><span class="key">d</span> Docs</a>
-      <a href="https://github.com/solomonadzape95/workbench"><span class="key">g</span> GitHub</a>
+      <a href="#install" data-key="i"><span class="key">i</span> Install</a>
+      <a href="https://github.com/solomonadzape95/workbench#readme" data-key="d"><span class="key">d</span> Docs</a>
+      <a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span> GitHub</a>
     </nav>
   </header>
 
@@ -29,8 +29,7 @@
     <section class="home" aria-label="Workbench home">
       <div class="identity">
         <div class="mark" aria-hidden="true">
-          <i class="b"></i><i class="b"></i><i class="b"></i><i class="m"></i><i class="m"></i><i class="m"></i><i class="d"></i><i class="d"></i><i class="d"></i>
-          <i class="b"></i><i class="b"></i><i class="b"></i><i class="m"></i><i class="m"></i><i class="m"></i><i class="d"></i><i class="d"></i><i class="d"></i>
+          <i class="bar b"></i><i class="bar m"></i><i class="bar d"></i>
         </div>
         <pre class="wordmark" aria-label="Workbench">██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗██████╗ ███████╗███╗   ██╗ ██████╗██╗  ██╗
 ██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██╔══██╗██╔════╝████╗  ██║██╔════╝██║  ██║
@@ -44,12 +43,12 @@
       </div>
 
       <div class="actions" aria-label="Workbench links">
-        <a href="#install"><span class="key">i</span><span class="name">Install</span><span class="desc">Homebrew, release binaries, or Go</span></a>
-        <a href="https://github.com/solomonadzape95/workbench#readme"><span class="key">d</span><span class="name">Docs</span><span class="desc">operations, pipelines, and the agent API</span></a>
-        <a href="https://github.com/solomonadzape95/workbench"><span class="key">g</span><span class="name">GitHub</span><span class="desc">source, issues, and releases</span></a>
-        <a href="https://github.com/solomonadzape95/workbench/releases"><span class="key">r</span><span class="name">Releases</span><span class="desc">v0.1.0 binaries and checksums</span></a>
-        <a href="https://github.com/solomonadzape95/workbench/blob/main/docs/agent-api.md"><span class="key">a</span><span class="name">Agents</span><span class="desc">HTTP API, SSE, OpenAPI, and MCP</span></a>
-        <a href="https://github.com/solomonadzape95/workbench"><span class="key">?</span><span class="name">Help</span><span class="desc">README and keymap</span></a>
+        <a href="#install" data-key="i"><span class="key">i</span><span class="name">Install</span><span class="desc">Homebrew, release binaries, or Go</span></a>
+        <a href="https://github.com/solomonadzape95/workbench#readme" data-key="d"><span class="key">d</span><span class="name">Docs</span><span class="desc">operations, pipelines, and the agent API</span></a>
+        <a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span><span class="name">GitHub</span><span class="desc">source, issues, and releases</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/releases" data-key="r"><span class="key">r</span><span class="name">Releases</span><span class="desc">v0.1.0 binaries and checksums</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/blob/main/docs/agent-api.md" data-key="a"><span class="key">a</span><span class="name">Agents</span><span class="desc">HTTP API, SSE, OpenAPI, and MCP</span></a>
+        <a href="https://github.com/solomonadzape95/workbench#readme" data-key="?"><span class="key">?</span><span class="name">Help</span><span class="desc">README and keymap</span></a>
       </div>
 
       <div class="install" id="install">
@@ -60,20 +59,23 @@
 
       <div class="panels">
         <section class="panel">
-          <h2>Recent</h2>
-          <div class="panel-body">
-            <div class="line"><span class="dot done"></span><span>v0.1.0</span><span class="muted">released · macOS + Linux</span></div>
-            <div class="line"><span class="dot done"></span><span>Homebrew tap</span><span class="muted">solomonadzape95/tap</span></div>
-            <div class="line"><span class="dot done"></span><span>Agent API</span><span class="muted">HTTP · SSE · MCP</span></div>
+          <h2>Quickstart</h2>
+          <div class="quick">
+            <div class="step"><span class="num">01</span><code>brew install solomonadzape95/tap/workbench</code></div>
+            <div class="step"><span class="num">02</span><code>wb</code><span class="note">open the TUI</span></div>
+            <div class="step"><span class="num">03</span><code>wb run --op image.convert --input "*.png"</code></div>
+            <p class="note">Build a chain once, save it with <span class="key">ctrl+s</span>, and re-run it with <span class="key">ctrl+r</span>.</p>
           </div>
         </section>
         <section class="panel">
-          <h2>Environment</h2>
-          <div class="panel-body">
-            <div class="line"><span class="dot done"></span><span>interface</span><span class="muted">TUI · HTTP API · MCP</span></div>
-            <div class="line"><span class="dot done"></span><span>engines</span><span class="muted">ffmpeg · whisper · LibreOffice · Real-ESRGAN</span></div>
-            <div class="line"><span class="dot done"></span><span>privacy</span><span class="muted">local-only · no uploads</span></div>
-            <div class="line"><span class="dot"></span><span>output</span><span class="muted">~/Workbench</span></div>
+          <h2>What it does</h2>
+          <div class="capabilities">
+            <div class="cap"><span class="cap-key">image</span><span>convert · resize · crop · remove bg · upscale</span></div>
+            <div class="cap"><span class="cap-key">audio</span><span>normalize · transcribe · vocals · instrumental</span></div>
+            <div class="cap"><span class="cap-key">video</span><span>trim · compress · concat · transcribe</span></div>
+            <div class="cap"><span class="cap-key">document</span><span>OCR · split · translate · summarize</span></div>
+            <div class="cap"><span class="cap-key">file</span><span>archive · extract · hash · dedupe</span></div>
+            <p class="note">65 operations · five domains · one binary.</p>
           </div>
         </section>
       </div>
@@ -82,12 +84,13 @@
 
   <footer>
     <span><span class="key">?</span> help</span>
-    <span><a href="#install"><span class="key">i</span> install</a></span>
-    <span><a href="https://github.com/solomonadzape95/workbench#readme"><span class="key">d</span> docs</a></span>
-    <span><a href="https://github.com/solomonadzape95/workbench"><span class="key">g</span> github</a></span>
+    <span><a href="#install" data-key="i"><span class="key">i</span> install</a></span>
+    <span><a href="https://github.com/solomonadzape95/workbench#readme" data-key="d"><span class="key">d</span> docs</a></span>
+    <span><a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span> github</a></span>
     <span class="muted">local-first · terminal-native</span>
   </footer>
 
   <script src="dither.js"></script>
+  <script src="keys.js"></script>
 </body>
 </html>
