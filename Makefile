@@ -1,4 +1,4 @@
-.PHONY: build run check fmt vet test lint doctor calibrate clean
+.PHONY: build run check fmt vet test lint doctor calibrate site clean
 
 BIN    := bin/wb
 MODULE := github.com/solomonadzape95/workbench
@@ -24,6 +24,9 @@ doctor:
 
 calibrate:
 	WORKBENCH_WRITE_CALIBRATION=1 go test ./internal/detect -run TestCalibrationReport -v
+
+site:
+	python3 -m http.server 8080 -d site
 
 fmt:
 	@out=$$(gofmt -l .); if [ -n "$$out" ]; then echo "gofmt needed:"; echo "$$out"; exit 1; fi

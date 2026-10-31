@@ -1,17 +1,28 @@
-<img src="assets/logo.svg" width="88" alt="Workbench logo">
+<p align="center">
+  <img src="assets/logo.svg" width="112" alt="Workbench logo">
+</p>
 
-# Workbench
+<h1 align="center">Workbench</h1>
 
 A keyboard-driven terminal workbench for file operations: convert, compress,
 resize, transform, and transcribe local media and documents, in batches, in
 parallel, with pipelines you can save and re-run.
 
 **Status:** M8 — an organized TUI shell with a simple home screen, a built-in
-a built-in text editor, eight theme presets with previews, and a local agent API. The product and
+text editor, eight theme presets with previews, and a local agent API. The product and
 architecture spec lives in [`SPEC.md`](./SPEC.md); the TUI structure plan is in
 [`docs/tui-architecture.md`](./docs/tui-architecture.md). The humanizer guide is
 in [`docs/humanizer.md`](./docs/humanizer.md), and the detector methodology is in
 [`docs/ai-detector.md`](./docs/ai-detector.md).
+
+## Install
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/solomonadzape95/workbench/main/install.sh | sh
+```
+
+See [`docs/install.md`](./docs/install.md) for release archives, `go install`,
+Homebrew, and private-checkout instructions.
 
 ## Build
 

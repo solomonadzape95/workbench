@@ -38,15 +38,16 @@ changelog:
       - "^docs:"
       - "^test:"
 
-brews:
-  - repository:
+homebrew_casks:
+  - name: workbench
+    repository:
       owner: solomonadzape95
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
     homepage: https://github.com/solomonadzape95/workbench
     description: Keyboard-driven terminal workbench for local file operations
-    install: |
-      bin.install "wb"
-    test: |
-      system "#{bin}/wb", "version"
+    binaries:
+      - wb
+    # The repository is currently private. Remove this once the source or
+    # release artifacts are public and HOMEBREW_TAP_GITHUB_TOKEN is configured.
+    skip_upload: true
