@@ -3,103 +3,91 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Workbench — your files, handled</title>
+  <title>Workbench — local file workbench</title>
   <meta name="description" content="A keyboard-driven terminal workbench for converting, compressing, transcribing, and transforming local files.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://workbench.thesolenoid.space/">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="shell">
+  <canvas id="dither" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="topbar">
     <a class="brand" href="./">
-      <img src="logo.svg" width="32" height="32" alt="">
+      <span class="header-mark" aria-hidden="true"><i class="b"></i><i class="m"></i><i class="d"></i></span>
       <span>Workbench</span>
     </a>
-    <nav>
-      <a href="#install">Install</a>
-      <a href="https://github.com/solomonadzape95/workbench">GitHub</a>
-      <a href="https://github.com/solomonadzape95/workbench#readme">Docs</a>
+    <nav aria-label="Primary">
+      <a href="#install"><span class="key">i</span> Install</a>
+      <a href="https://github.com/solomonadzape95/workbench#readme"><span class="key">d</span> Docs</a>
+      <a href="https://github.com/solomonadzape95/workbench"><span class="key">g</span> GitHub</a>
     </nav>
   </header>
 
-  <main class="shell">
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow"><span class="live"></span> Local-first · terminal-native</p>
-        <h1>Your files,<br><em>handled.</em></h1>
-        <p class="lede">Convert, compress, transcribe, and transform local media and documents. Batch it, chain it, or hand it to an agent.</p>
-        <div class="actions">
-          <a class="button primary" href="#install">Get Workbench</a>
-          <a class="button ghost" href="https://github.com/solomonadzape95/workbench">View on GitHub</a>
+  <main>
+    <section class="home" aria-label="Workbench home">
+      <div class="identity">
+        <div class="mark" aria-hidden="true">
+          <i class="b"></i><i class="b"></i><i class="b"></i><i class="m"></i><i class="m"></i><i class="m"></i><i class="d"></i><i class="d"></i><i class="d"></i>
+          <i class="b"></i><i class="b"></i><i class="b"></i><i class="m"></i><i class="m"></i><i class="m"></i><i class="d"></i><i class="d"></i><i class="d"></i>
         </div>
-        <div class="install" id="install">
-          <span class="prompt">$</span>
-          <code id="install-command">brew install solomonadzape95/tap/workbench</code>
-          <button class="copy" type="button" data-copy="install-command" aria-label="Copy install command">copy</button>
-        </div>
-        <p class="install-note">Homebrew tap · or download a release binary from <a href="https://github.com/solomonadzape95/workbench/releases">Releases</a>.</p>
+        <pre class="wordmark" aria-label="Workbench">██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗██████╗ ███████╗███╗   ██╗ ██████╗██╗  ██╗
+██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██╔══██╗██╔════╝████╗  ██║██╔════╝██║  ██║
+██║ █╗ ██║██║   ██║██████╔╝█████╔╝ ██████╔╝█████╗  ██╔██╗ ██║██║     ███████║
+██║███╗██║██║   ██║██╔══██╗██╔═██╗ ██╔══██╗██╔══╝  ██║╚██╗██║██║     ██╔══██║
+╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗██████╔╝███████╗██║ ╚████║╚██████╗██║  ██║
+ ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝</pre>
+        <div class="wordmark-mobile" aria-hidden="true">Workbench</div>
+        <p class="tagline">A keyboard-driven terminal workbench for local files.</p>
+        <p class="sub">Convert, compress, transcribe, and transform. Batch it, chain it, or hand it to an agent.</p>
       </div>
 
-      <div class="terminal" aria-label="Workbench job list preview">
-        <div class="terminal-bar">
-          <span class="light red"></span><span class="light amber"></span><span class="light green"></span>
-          <span class="terminal-title">wb · jobs</span>
-        </div>
-        <div class="terminal-body">
-          <div class="term-head"><span class="accent">Jobs</span><span class="muted">4 running · 12 done</span></div>
-          <div class="term-row"><span class="status done"></span><span>Podcast package</span><span class="muted">done · 2.1s</span></div>
-          <div class="term-row"><span class="status run"></span><span>Share video</span><span class="muted">47% · 1080p</span></div>
-          <div class="term-row"><span class="status done"></span><span>Contact sheet</span><span class="muted">done · 0.8s</span></div>
-          <div class="term-row"><span class="status wait"></span><span>Lecture notes</span><span class="muted">queued</span></div>
-          <div class="meter"><span style="width:72%"></span></div>
-          <div class="term-foot"><span class="accent">?</span> help <span class="sep">·</span> <span class="accent">n</span> new job <span class="sep">·</span> <span class="accent">j</span> jobs</div>
-        </div>
+      <div class="actions" aria-label="Workbench links">
+        <a href="#install"><span class="key">i</span><span class="name">Install</span><span class="desc">Homebrew, release binaries, or Go</span></a>
+        <a href="https://github.com/solomonadzape95/workbench#readme"><span class="key">d</span><span class="name">Docs</span><span class="desc">operations, pipelines, and the agent API</span></a>
+        <a href="https://github.com/solomonadzape95/workbench"><span class="key">g</span><span class="name">GitHub</span><span class="desc">source, issues, and releases</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/releases"><span class="key">r</span><span class="name">Releases</span><span class="desc">v0.1.0 binaries and checksums</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/blob/main/docs/agent-api.md"><span class="key">a</span><span class="name">Agents</span><span class="desc">HTTP API, SSE, OpenAPI, and MCP</span></a>
+        <a href="https://github.com/solomonadzape95/workbench"><span class="key">?</span><span class="name">Help</span><span class="desc">README and keymap</span></a>
       </div>
-    </section>
 
-    <section class="grid" aria-label="What Workbench does">
-      <article class="panel">
-        <span class="panel-label">01 / OPERATIONS</span>
-        <h2>One workbench.</h2>
-        <p>Images, audio, video, PDFs, archives, and files. 65 focused operations with sensible defaults and native tools underneath.</p>
-      </article>
-      <article class="panel">
-        <span class="panel-label">02 / PIPELINES</span>
-        <h2>Chain the boring parts.</h2>
-        <p>Build a pipeline once, save it, and re-run it on a folder. Press <kbd>n</kbd>, pick your steps, press <kbd>ctrl+r</kbd>.</p>
-      </article>
-      <article class="panel">
-        <span class="panel-label">03 / AGENTS</span>
-        <h2>Scriptable by design.</h2>
-        <p>A local HTTP API, SSE events, an OpenAPI schema, and an MCP server. Your agent can call the same runner as the TUI.</p>
-      </article>
-    </section>
-
-    <section class="strip">
-      <div>
-        <span class="panel-label">THE SHAPE OF IT</span>
-        <p class="mono">convert → compress → hash</p>
+      <div class="install" id="install">
+        <span class="prompt">$</span>
+        <code id="install-command">brew install solomonadzape95/tap/workbench</code>
+        <button class="copy" type="button" data-copy="install-command" aria-label="Copy install command">copy</button>
       </div>
-      <p class="muted">No cloud. No upload. Your files stay where you put them.</p>
+
+      <div class="panels">
+        <section class="panel">
+          <h2>Recent</h2>
+          <div class="panel-body">
+            <div class="line"><span class="dot done"></span><span>v0.1.0</span><span class="muted">released · macOS + Linux</span></div>
+            <div class="line"><span class="dot done"></span><span>Homebrew tap</span><span class="muted">solomonadzape95/tap</span></div>
+            <div class="line"><span class="dot done"></span><span>Agent API</span><span class="muted">HTTP · SSE · MCP</span></div>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>Environment</h2>
+          <div class="panel-body">
+            <div class="line"><span class="dot done"></span><span>interface</span><span class="muted">TUI · HTTP API · MCP</span></div>
+            <div class="line"><span class="dot done"></span><span>engines</span><span class="muted">ffmpeg · whisper · LibreOffice · Real-ESRGAN</span></div>
+            <div class="line"><span class="dot done"></span><span>privacy</span><span class="muted">local-only · no uploads</span></div>
+            <div class="line"><span class="dot"></span><span>output</span><span class="muted">~/Workbench</span></div>
+          </div>
+        </section>
+      </div>
     </section>
   </main>
 
-  <footer class="shell">
-    <span>Workbench · built for the terminal</span>
-    <span class="muted">Local-first · source available on GitHub</span>
+  <footer>
+    <span><span class="key">?</span> help</span>
+    <span><a href="#install"><span class="key">i</span> install</a></span>
+    <span><a href="https://github.com/solomonadzape95/workbench#readme"><span class="key">d</span> docs</a></span>
+    <span><a href="https://github.com/solomonadzape95/workbench"><span class="key">g</span> github</a></span>
+    <span class="muted">local-first · terminal-native</span>
   </footer>
 
-  <script>
-    document.querySelectorAll('[data-copy]').forEach((button) => {
-      button.addEventListener('click', async () => {
-        const target = document.getElementById(button.dataset.copy);
-        if (!target) return;
-        await navigator.clipboard.writeText(target.textContent.trim());
-        const original = button.textContent;
-        button.textContent = 'copied';
-        setTimeout(() => { button.textContent = original; }, 1200);
-      });
-    });
-  </script>
+  <script src="dither.js"></script>
 </body>
 </html>

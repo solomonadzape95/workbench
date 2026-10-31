@@ -1,19 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Workbench">
   <title>Workbench</title>
   <defs>
-    <linearGradient id="g" x1="0" y1="46" x2="0" y2="210" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ffc46b"/><stop offset="0.5" stop-color="#f5a742"/><stop offset="1" stop-color="#b87a2b"/>
-    </linearGradient>
-    <pattern id="d" width="6" height="6" patternUnits="userSpaceOnUse">
-      <rect width="6" height="6" fill="url(#g)"/><rect x="3" y="3" width="2" height="2" fill="#0b0d10" opacity="0.16"/>
+    <pattern id="bright" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#f5a742"/>
+      <rect x="3" y="3" width="2" height="2" fill="#e3973a"/>
+    </pattern>
+    <pattern id="mid" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#a37130"/>
+      <rect x="3" y="3" width="2" height="2" fill="#8d5f28"/>
+    </pattern>
+    <pattern id="dim" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#694924"/>
+      <rect x="3" y="3" width="2" height="2" fill="#54391d"/>
     </pattern>
   </defs>
   <rect width="256" height="256" rx="32" fill="#0b0d10"/>
   <rect x="12" y="12" width="232" height="232" rx="24" fill="#0f1318" stroke="#26333d"/>
   <rect x="32" y="32" width="192" height="192" rx="18" fill="#10161c" stroke="#1c272f"/>
-  <g fill="url(#d)">
-    <rect x="46" y="46" width="48" height="48" rx="9"/><rect x="104" y="46" width="48" height="48" rx="9"/><rect x="162" y="46" width="48" height="48" rx="9"/>
-    <rect x="46" y="104" width="48" height="48" rx="9"/><rect x="104" y="104" width="48" height="48" rx="9"/><rect x="162" y="104" width="48" height="48" rx="9"/>
-    <rect x="46" y="162" width="48" height="48" rx="9"/><rect x="104" y="162" width="48" height="48" rx="9"/><rect x="162" y="162" width="48" height="48" rx="9"/>
+  <g>
+    <g fill="url(#bright)">
+      <rect x="31" y="108" width="18" height="18" rx="3"/><rect x="53" y="108" width="18" height="18" rx="3"/><rect x="75" y="108" width="18" height="18" rx="3"/>
+      <rect x="31" y="130" width="18" height="18" rx="3"/><rect x="53" y="130" width="18" height="18" rx="3"/><rect x="75" y="130" width="18" height="18" rx="3"/>
+    </g>
+    <g fill="url(#mid)">
+      <rect x="97" y="108" width="18" height="18" rx="3"/><rect x="119" y="108" width="18" height="18" rx="3"/><rect x="141" y="108" width="18" height="18" rx="3"/>
+      <rect x="97" y="130" width="18" height="18" rx="3"/><rect x="119" y="130" width="18" height="18" rx="3"/><rect x="141" y="130" width="18" height="18" rx="3"/>
+    </g>
+    <g fill="url(#dim)">
+      <rect x="163" y="108" width="18" height="18" rx="3"/><rect x="185" y="108" width="18" height="18" rx="3"/><rect x="207" y="108" width="18" height="18" rx="3"/>
+      <rect x="163" y="130" width="18" height="18" rx="3"/><rect x="185" y="130" width="18" height="18" rx="3"/><rect x="207" y="130" width="18" height="18" rx="3"/>
+    </g>
   </g>
 </svg>
