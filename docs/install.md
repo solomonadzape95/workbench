@@ -41,21 +41,14 @@ go install github.com/solomonadzape95/workbench/cmd/workbench@latest
 
 ## Homebrew
 
-The GoReleaser config generates a `workbench` cask. The tap publication is
-currently disabled with `skip_upload: true` because the source repository is
-private. Once the repository or release artifacts are public:
-
-1. Create `solomonadzape95/homebrew-tap`.
-2. Add a `HOMEBREW_TAP_GITHUB_TOKEN` repository secret with write access to the
-   tap.
-3. Remove `skip_upload: true` from `.goreleaser.yaml`.
-4. Tag a release (`git tag v0.1.0 && git push --tags`).
-
-Then:
-
 ```sh
-brew install --cask solomonadzape95/tap/workbench
+brew install solomonadzape95/tap/workbench
 ```
+
+The tap lives at
+[`solomonadzape95/homebrew-tap`](https://github.com/solomonadzape95/homebrew-tap)
+and currently carries `v0.1.0`. Update `Formula/workbench.rb` for future tags,
+or enable the GoReleaser cask publisher with a tap token.
 
 ## Build from source
 
