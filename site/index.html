@@ -7,21 +7,15 @@
   <meta name="description" content="A keyboard-driven terminal workbench for converting, compressing, transcribing, and transforming local files.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://workbench.thesolenoid.space/">
-  <script>document.documentElement.classList.add("js");</script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <svg class="sprite" aria-hidden="true">
-    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></symbol>
-    <symbol id="i-command" viewBox="0 0 24 24"><path d="m5 7 5 5-5 5M12 17h7"/></symbol>
-    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
     <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></symbol>
     <symbol id="i-audio" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></symbol>
     <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="m17 10 4-2v8l-4-2z"/></symbol>
     <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></symbol>
     <symbol id="i-file" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></symbol>
-    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/><path d="m9 12 2 2 4-4"/></symbol>
-    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-9 12h6l-1 8 9-12h-6z"/></symbol>
   </svg>
   <canvas id="dither" aria-hidden="true"></canvas>
   <div class="grain" aria-hidden="true"></div>
@@ -64,98 +58,66 @@
         <a href="#help" data-key="?" data-panel="help"><span class="key">?</span><span class="name">Help</span><span class="desc">README and keymap</span></a>
       </div>
 
-      <div class="install" id="install">
-        <span class="prompt">$</span>
-        <code id="install-command">brew install solomonadzape95/tap/workbench</code>
-        <button class="copy" type="button" data-copy="install-command" aria-label="Copy install command">copy</button>
-      </div>
-
       <div class="panels">
         <section class="panel">
           <h2>Quickstart</h2>
+          <p class="panel-lede">Install, launch, and run your first job.</p>
           <div class="quick">
-            <div class="step"><span class="num">01</span><code>brew install solomonadzape95/tap/workbench</code></div>
-            <div class="step"><span class="num">02</span><code>wb</code><span class="note">open the TUI</span></div>
-            <div class="step"><span class="num">03</span><code>wb run --op image.convert --input "*.png"</code></div>
+            <div class="step">
+              <span class="num">01</span>
+              <div class="step-body">
+                <span class="step-label">Install with Homebrew</span>
+                <div class="command"><span class="prompt">$</span><code id="qs-install">brew install solomonadzape95/tap/workbench</code><button class="copy" type="button" data-copy="qs-install">copy</button></div>
+              </div>
+            </div>
+            <div class="step">
+              <span class="num">02</span>
+              <div class="step-body">
+                <span class="step-label">Launch the TUI</span>
+                <div class="command"><span class="prompt">$</span><code id="qs-launch">wb</code><button class="copy" type="button" data-copy="qs-launch">copy</button></div>
+              </div>
+            </div>
+            <div class="step">
+              <span class="num">03</span>
+              <div class="step-body">
+                <span class="step-label">Run an operation</span>
+                <div class="command"><span class="prompt">$</span><code id="qs-run">wb run --op image.convert --input "*.png"</code><button class="copy" type="button" data-copy="qs-run">copy</button></div>
+              </div>
+            </div>
             <p class="note">Build a chain once, save it with <span class="key">ctrl+s</span>, and re-run it with <span class="key">ctrl+r</span>.</p>
           </div>
         </section>
         <section class="panel">
           <h2>What it does</h2>
+          <p class="panel-lede">65 operations across five domains.</p>
           <div class="capabilities">
-            <div class="cap"><svg class="icon"><use href="#i-image"></use></svg><span class="cap-key">image</span><span>convert · resize · crop · remove bg · upscale</span></div>
-            <div class="cap"><svg class="icon"><use href="#i-audio"></use></svg><span class="cap-key">audio</span><span>normalize · transcribe · vocals · instrumental</span></div>
-            <div class="cap"><svg class="icon"><use href="#i-video"></use></svg><span class="cap-key">video</span><span>trim · compress · concat · transcribe</span></div>
-            <div class="cap"><svg class="icon"><use href="#i-doc"></use></svg><span class="cap-key">document</span><span>OCR · split · translate · summarize</span></div>
-            <div class="cap"><svg class="icon"><use href="#i-file"></use></svg><span class="cap-key">file</span><span>archive · extract · hash · dedupe</span></div>
-            <p class="note">65 operations · five domains · one binary.</p>
+            <div class="cap">
+              <div class="cap-title"><svg class="icon"><use href="#i-image"></use></svg><span class="cap-key">image</span></div>
+              <div class="cap-ops"><code>image.convert</code><code>image.resize</code><code>image.crop</code><code>image.remove_bg</code><code>image.upscale</code></div>
+            </div>
+            <div class="cap">
+              <div class="cap-title"><svg class="icon"><use href="#i-audio"></use></svg><span class="cap-key">audio</span></div>
+              <div class="cap-ops"><code>audio.normalize</code><code>audio.compress</code><code>audio.transcribe</code><code>audio.extract_vocals</code></div>
+            </div>
+            <div class="cap">
+              <div class="cap-title"><svg class="icon"><use href="#i-video"></use></svg><span class="cap-key">video</span></div>
+              <div class="cap-ops"><code>video.trim</code><code>video.compress</code><code>video.concat</code><code>video.transcribe</code></div>
+            </div>
+            <div class="cap">
+              <div class="cap-title"><svg class="icon"><use href="#i-doc"></use></svg><span class="cap-key">document</span></div>
+              <div class="cap-ops"><code>doc.ocr</code><code>doc.split</code><code>doc.translate</code><code>doc.summarize</code></div>
+            </div>
+            <div class="cap">
+              <div class="cap-title"><svg class="icon"><use href="#i-file"></use></svg><span class="cap-key">file</span></div>
+              <div class="cap-ops"><code>file.archive</code><code>file.extract</code><code>file.hash</code><code>file.dedupe</code></div>
+            </div>
           </div>
         </section>
       </div>
     </section>
 
-    <section class="section" data-reveal>
-      <p class="eyebrow">Three ways in</p>
-      <h2>Run it your way.</h2>
-      <div class="modes">
-        <article class="mode">
-          <span class="icon-tile"><svg class="icon"><use href="#i-terminal"></use></svg></span>
-          <h3>In the TUI</h3>
-          <p>Pick an operation, set a few fields, and watch the job list. The whole workbench lives in one terminal screen.</p>
-          <code>wb</code>
-        </article>
-        <article class="mode">
-          <span class="icon-tile"><svg class="icon"><use href="#i-command"></use></svg></span>
-          <h3>From a command</h3>
-          <p>Run one operation or a saved pipeline. Globs, filters, and dry runs are built in for shell work.</p>
-          <code>wb run --op image.convert --input "*.png"</code>
-        </article>
-        <article class="mode">
-          <span class="icon-tile"><svg class="icon"><use href="#i-plug"></use></svg></span>
-          <h3>From an agent</h3>
-          <p>Expose the same runner over HTTP or MCP. Start jobs, stream events, and download outputs.</p>
-          <code>wb serve &nbsp;·&nbsp; wb mcp</code>
-        </article>
-      </div>
-    </section>
-
-    <section class="section local-split" data-reveal>
-      <div>
-        <p class="eyebrow">Local by default</p>
-        <h2>Your files stay yours.</h2>
-        <p>Workbench runs on your machine and delegates to tools you control. There is no upload step and no account. Install only the engines you need; missing ones never block unrelated work.</p>
-      </div>
-      <div class="facts">
-        <div class="fact">
-          <span class="icon-tile"><svg class="icon"><use href="#i-shield"></use></svg></span>
-          <div><strong>0 uploads</strong><span>Everything runs locally.</span></div>
-        </div>
-        <div class="fact">
-          <span class="icon-tile"><svg class="icon"><use href="#i-bolt"></use></svg></span>
-          <div><strong>65 operations</strong><span>Five domains, one binary.</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="cta" data-reveal>
-      <div>
-        <p class="eyebrow">Ready when you are</p>
-        <h2>Put it on your PATH.</h2>
-      </div>
-      <div class="cta-actions">
-        <a class="button" href="#install" data-panel="install"><span class="key">i</span> Install</a>
-        <a class="button ghost" href="#docs" data-panel="docs"><span class="key">d</span> Read the docs</a>
-      </div>
-    </section>
   </main>
 
-  <footer>
-    <span><a href="#help" data-key="?" data-panel="help"><span class="key">?</span> help</a></span>
-    <span><a href="#install" data-key="i" data-panel="install"><span class="key">i</span> install</a></span>
-    <span><a href="#docs" data-key="d" data-panel="docs"><span class="key">d</span> docs</a></span>
-    <span><a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span> github</a></span>
-    <span class="muted">local-first · terminal-native</span>
-  </footer>
 
 
   <dialog id="tui" class="tui" aria-labelledby="tui-title">
@@ -274,6 +236,5 @@ curl -H "Authorization: Bearer dev-secret" \
   <script src="dither.js"></script>
   <script src="tui.js"></script>
   <script src="keys.js"></script>
-  <script src="reveal.js"></script>
 </body>
 </html>
