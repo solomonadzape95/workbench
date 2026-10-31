@@ -1,3 +1,4 @@
+// Package humanize rewrites prose through OpenCode while preserving structure.
 package humanize
 
 import (

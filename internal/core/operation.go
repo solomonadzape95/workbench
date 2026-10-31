@@ -17,7 +17,7 @@ const (
 	SourceURLs  SourceKind = "urls"
 )
 
-// Cost is a scheduling hint, not a promise.
+// Mode controls how a step fans out across inputs and whether it may chain.
 type Mode string
 
 const (
@@ -75,10 +75,11 @@ func (s Spec) DefaultValues() Values {
 	return Defaults(s.Params)
 }
 
-// AcceptsArtifact reports whether the operation can read this file.
-// SourceKind reports the operation's input mode.
+// Aggregate reports whether the step consumes every active item at once.
 func (s Spec) Aggregate() bool { return s.Mode == ModeAggregate }
-func (s Spec) Direct() bool    { return s.Mode == ModeDirect }
+
+// Direct reports whether the step writes to the final target without a commit.
+func (s Spec) Direct() bool { return s.Mode == ModeDirect }
 
 func (s Spec) SourceKind() SourceKind {
 	if s.Source == "" {

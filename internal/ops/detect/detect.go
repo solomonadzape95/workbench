@@ -1,4 +1,4 @@
-// Package detect exposes the explainable AI-writing detector as a Workbench
+// Package detectops exposes the explainable AI-writing detector as a Workbench
 // operation. It is intentionally separate from the detector engine so the TUI
 // and agents can reuse the report types without depending on the operation.
 package detectops
