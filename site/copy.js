@@ -1,8 +1,12 @@
 (() => {
   async function writeClipboard(text) {
     if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return;
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch {
+        // Fall through to the textarea fallback.
+      }
     }
     const area = document.createElement('textarea');
     area.value = text;
