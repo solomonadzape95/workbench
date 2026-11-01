@@ -104,6 +104,7 @@ From the dashboard:
 - `image.to_ico` — multi-size favicon output (16, 32, 64, 128, 256).
 - `image.enhance` — deterministic contrast, brightness, and sharpen pass.
 - `image.upscale` — 2×/3×/4× Real-ESRGAN upscaling (optional binary).
+- `image.to_pdf` — combine one or more images into a PDF, one image per page.
 - `image.watermark` — text watermark with position, opacity, and margin.
 - `audio.convert` / `audio.compress` / `audio.speed` — MP3, M4A, WAV, FLAC,
   Ogg, and Opus, with pitch-preserving speed changes.

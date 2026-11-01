@@ -174,6 +174,13 @@ var jobPresets = []jobPreset{
 		},
 	},
 	{
+		name:        "Images to PDF",
+		description: "Combine one or more images into a single PDF, one image per page",
+		steps: []presetStep{
+			{op: "image.to_pdf", params: core.Values{"page_size": "a4", "orientation": "auto", "margin": 18}},
+		},
+	},
+	{
 		name:        "Contact sheet",
 		description: "Arrange images into one labeled grid",
 		steps: []presetStep{

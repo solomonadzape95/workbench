@@ -8,6 +8,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/beevik/etree v1.8.1
 	github.com/charmbracelet/x/ansi v0.11.9
+	github.com/go-pdf/fpdf v0.9.0
 	github.com/klauspost/compress v1.20.3
 	github.com/pelletier/go-toml/v2 v2.4.3
 	golang.org/x/image v0.47.0

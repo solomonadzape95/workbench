@@ -20,18 +20,6 @@
   <canvas id="dither" aria-hidden="true"></canvas>
   <div class="grain" aria-hidden="true"></div>
 
-  <header class="topbar">
-    <a class="brand" href="./">
-      <span class="header-mark" aria-hidden="true"><i class="b"></i><i class="m"></i><i class="d"></i></span>
-      <span>Workbench</span>
-    </a>
-    <nav aria-label="Primary">
-      <a href="#install" data-key="i" data-panel="install"><span class="key">i</span> Install</a>
-      <a href="#docs" data-key="d" data-panel="docs"><span class="key">d</span> Docs</a>
-      <a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span> GitHub</a>
-    </nav>
-  </header>
-
   <main>
     <section class="home" aria-label="Workbench home">
       <div class="identity">
@@ -44,7 +32,6 @@
 ██║███╗██║██║   ██║██╔══██╗██╔═██╗ ██╔══██╗██╔══╝  ██║╚██╗██║██║     ██╔══██║
 ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗██████╔╝███████╗██║ ╚████║╚██████╗██║  ██║
  ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝</pre>
-        <div class="wordmark-mobile" aria-hidden="true">Workbench</div>
         <p class="tagline">A keyboard-driven terminal workbench for local files.</p>
         <p class="sub">Convert, compress, transcribe, and transform. Batch it, chain it, or hand it to an agent.</p>
       </div>
@@ -89,11 +76,11 @@
         </section>
         <section class="panel">
           <h2>What it does</h2>
-          <p class="panel-lede">65 operations across five domains.</p>
+          <p class="panel-lede">66 operations across five domains.</p>
           <div class="capabilities">
             <div class="cap">
               <div class="cap-title"><svg class="icon"><use href="#i-image"></use></svg><span class="cap-key">image</span></div>
-              <div class="cap-ops"><code>image.convert</code><code>image.resize</code><code>image.crop</code><code>image.remove_bg</code><code>image.upscale</code></div>
+              <div class="cap-ops"><code>image.convert</code><code>image.resize</code><code>image.crop</code><code>image.remove_bg</code><code>image.upscale</code><code>image.to_pdf</code></div>
             </div>
             <div class="cap">
               <div class="cap-title"><svg class="icon"><use href="#i-audio"></use></svg><span class="cap-key">audio</span></div>
@@ -159,7 +146,7 @@ wb
 wb run --op image.convert --input "~/Pictures/*.png" --output ~/Workbench</code></pre>
       <h3>Operations</h3>
       <div class="doc-grid">
-        <div><strong>image</strong><span>convert · resize · crop · remove background · upscale · watermark</span></div>
+        <div><strong>image</strong><span>convert · resize · crop · remove background · upscale · images to PDF</span></div>
         <div><strong>audio</strong><span>normalize · compress · trim · transcribe · isolate vocals</span></div>
         <div><strong>video</strong><span>trim · compress · concat · thumbnail · burn subtitles</span></div>
         <div><strong>document</strong><span>OCR · split · merge · translate · summarize · humanize</span></div>

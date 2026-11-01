@@ -114,6 +114,7 @@ func buildOperations(cfg config.Config) *core.Registry {
 		imageops.Enhance{},
 		imageops.Watermark{},
 		imageops.ContactSheet{},
+		imageops.ToPDF{},
 		detectops.Detect{LogProbCommand: cfg.Detect.LogProbCommand, LogProbWeight: cfg.Detect.LogProbWeight},
 		docops.Edit{},
 	}
