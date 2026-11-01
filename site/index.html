@@ -40,13 +40,13 @@
         <a href="#install" data-key="i" data-panel="install"><span class="key">i</span><span class="name">Install</span><span class="desc">Homebrew, release binaries, or Go</span></a>
         <a href="#docs" data-key="d" data-panel="docs"><span class="key">d</span><span class="name">Docs</span><span class="desc">operations, pipelines, and the agent API</span></a>
         <a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span><span class="name">GitHub</span><span class="desc">source, issues, and releases</span></a>
-        <a href="#releases" data-key="r" data-panel="releases"><span class="key">r</span><span class="name">Releases</span><span class="desc">v0.1.0 binaries and checksums</span></a>
+        <a href="#releases" data-key="r" data-panel="releases"><span class="key">r</span><span class="name">Releases</span><span class="desc">v0.1.1 binaries and checksums</span></a>
         <a href="#agents" data-key="a" data-panel="agents"><span class="key">a</span><span class="name">Agents</span><span class="desc">HTTP API, SSE, OpenAPI, and MCP</span></a>
         <a href="#help" data-key="?" data-panel="help"><span class="key">?</span><span class="name">Help</span><span class="desc">README and keymap</span></a>
       </div>
 
       <div class="panels">
-        <section class="panel">
+        <section class="panel panel-quickstart">
           <h2>Quickstart</h2>
           <p class="panel-lede">Install, launch, and run your first job.</p>
           <div class="quick">
@@ -68,37 +68,47 @@
               <span class="num">03</span>
               <div class="step-body">
                 <span class="step-label">Run an operation</span>
-                <div class="command"><span class="prompt">$</span><code id="qs-run">wb run --op image.convert --input "*.png"</code><button class="copy" type="button" data-copy="qs-run">copy</button></div>
+                <div class="command"><span class="prompt">$</span><code id="qs-run">wb run --op image.convert <span class="nowrap">--input "*.png"</span></code><button class="copy" type="button" data-copy="qs-run">copy</button></div>
               </div>
             </div>
-            <p class="note">Build a chain once, save it with <span class="key">ctrl+s</span>, and re-run it with <span class="key">ctrl+r</span>.</p>
+            <div class="step">
+              <span class="num">04</span>
+              <div class="step-body">
+                <span class="step-label">Check your engines</span>
+                <div class="command"><span class="prompt">$</span><code id="qs-doctor">wb doctor</code><button class="copy" type="button" data-copy="qs-doctor">copy</button></div>
+              </div>
+            </div>
           </div>
+          <p class="panel-tip"><span class="tip-label">tip</span> Save a chain with <span class="key">ctrl+s</span>, replay it with <span class="key">ctrl+r</span>.</p>
+          <a class="panel-foot" href="#help" data-panel="help">Site keymap <span aria-hidden="true">→</span></a>
         </section>
-        <section class="panel">
+        <section class="panel panel-capabilities">
           <h2>What it does</h2>
           <p class="panel-lede">66 operations across five domains.</p>
           <div class="capabilities">
             <div class="cap">
               <div class="cap-title"><svg class="icon"><use href="#i-image"></use></svg><span class="cap-key">image</span></div>
-              <div class="cap-ops"><code>image.convert</code><code>image.resize</code><code>image.crop</code><code>image.remove_bg</code><code>image.upscale</code><code>image.to_pdf</code></div>
+              <p class="cap-ops">convert · compress · resize · crop · remove background · images to PDF</p>
             </div>
             <div class="cap">
               <div class="cap-title"><svg class="icon"><use href="#i-audio"></use></svg><span class="cap-key">audio</span></div>
-              <div class="cap-ops"><code>audio.normalize</code><code>audio.compress</code><code>audio.transcribe</code><code>audio.extract_vocals</code></div>
+              <p class="cap-ops">convert · normalize · transcribe · extract vocals</p>
             </div>
             <div class="cap">
               <div class="cap-title"><svg class="icon"><use href="#i-video"></use></svg><span class="cap-key">video</span></div>
-              <div class="cap-ops"><code>video.trim</code><code>video.compress</code><code>video.concat</code><code>video.transcribe</code></div>
+              <p class="cap-ops">compress · trim · concat · download · captions</p>
             </div>
             <div class="cap">
               <div class="cap-title"><svg class="icon"><use href="#i-doc"></use></svg><span class="cap-key">document</span></div>
-              <div class="cap-ops"><code>doc.ocr</code><code>doc.split</code><code>doc.translate</code><code>doc.summarize</code></div>
+              <p class="cap-ops">convert · OCR · merge · split · translate · humanize</p>
             </div>
             <div class="cap">
               <div class="cap-title"><svg class="icon"><use href="#i-file"></use></svg><span class="cap-key">file</span></div>
-              <div class="cap-ops"><code>file.archive</code><code>file.extract</code><code>file.hash</code><code>file.dedupe</code></div>
+              <p class="cap-ops">copy · archive · extract · hash · verify · dedupe</p>
             </div>
           </div>
+          <p class="cap-extra">pipelines · previews · editor · themes · agent API</p>
+          <a class="panel-foot" href="#docs" data-panel="docs">Browse every operation <span aria-hidden="true">→</span></a>
         </section>
       </div>
     </section>
@@ -169,15 +179,15 @@ wb mcp                        # stdio MCP server</code></pre>
   <template id="panel-releases">
     <div class="doc">
       <p class="doc-kicker">RELEASES</p>
-      <h2>v0.1.0</h2>
-      <p>First public release. One binary, five domains, 65 operations.</p>
+      <h2>v0.1.1</h2>
+      <p>Latest release. One binary, five domains, 66 operations.</p>
       <div class="doc-assets">
-        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/workbench_0.1.0_darwin_arm64.tar.gz" target="_blank" rel="noreferrer"><span>darwin / arm64</span><span>4.7 MB</span></a>
-        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/workbench_0.1.0_darwin_amd64.tar.gz" target="_blank" rel="noreferrer"><span>darwin / amd64</span><span>5.1 MB</span></a>
-        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/workbench_0.1.0_linux_arm64.tar.gz" target="_blank" rel="noreferrer"><span>linux / arm64</span><span>4.6 MB</span></a>
-        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/workbench_0.1.0_linux_amd64.tar.gz" target="_blank" rel="noreferrer"><span>linux / amd64</span><span>5.1 MB</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/workbench_0.1.1_darwin_arm64.tar.gz" target="_blank" rel="noreferrer"><span>darwin / arm64</span><span>4.9 MB</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/workbench_0.1.1_darwin_amd64.tar.gz" target="_blank" rel="noreferrer"><span>darwin / amd64</span><span>5.3 MB</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/workbench_0.1.1_linux_arm64.tar.gz" target="_blank" rel="noreferrer"><span>linux / arm64</span><span>4.8 MB</span></a>
+        <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/workbench_0.1.1_linux_amd64.tar.gz" target="_blank" rel="noreferrer"><span>linux / amd64</span><span>5.2 MB</span></a>
       </div>
-      <p><a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.0/checksums.txt" target="_blank" rel="noreferrer">checksums.txt</a> · <a href="https://github.com/solomonadzape95/workbench/releases" target="_blank" rel="noreferrer">all releases</a></p>
+      <p><a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/checksums.txt" target="_blank" rel="noreferrer">checksums.txt</a> · <a href="https://github.com/solomonadzape95/workbench/releases" target="_blank" rel="noreferrer">all releases</a></p>
       <h3>Install</h3>
       <pre><code>brew install solomonadzape95/tap/workbench</code></pre>
       <p class="doc-note">Homebrew cask packaging and release artifacts are built by GoReleaser.</p>

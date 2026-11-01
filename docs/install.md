@@ -18,7 +18,7 @@ curl -fsSL https://raw.githubusercontent.com/solomonadzape95/workbench/main/inst
 
 The script detects macOS/Linux and arm64/amd64, verifies `checksums.txt`, and
 installs to `~/.local/bin` by default. Override with `PREFIX` or pin a release
-with `WORKBENCH_VERSION=v0.1.0`.
+with `WORKBENCH_VERSION=v0.1.1`.
 
 For a private checkout, pass a token:
 
@@ -47,7 +47,7 @@ brew install solomonadzape95/tap/workbench
 
 The tap lives at
 [`solomonadzape95/homebrew-tap`](https://github.com/solomonadzape95/homebrew-tap)
-and currently carries `v0.1.0`. Update `Formula/workbench.rb` for future tags,
+and currently carries `v0.1.1`. Update `Formula/workbench.rb` for future tags,
 or enable the GoReleaser cask publisher with a tap token.
 
 ## Build from source
