@@ -1,0 +1,65 @@
+name: Bug report
+description: Something broke or behaved differently than expected.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please remove personal paths, tokens, and private file contents before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: Workbench version
+      description: Output of `wb version`.
+      placeholder: workbench v0.1.1 ...
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS (arm64)
+        - macOS (amd64)
+        - Linux (arm64)
+        - Linux (amd64)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command or TUI action
+      description: The exact `wb run` command or the keys you pressed.
+      placeholder: wb run --op image.convert --input "*.png"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened?
+      description: Include the error message and the job log if you have it.
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Relevant `wb doctor` lines
+      description: Optional, but it makes engine issues much faster to diagnose.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed personal paths, tokens, and private file contents.
+          required: true
+        - label: I searched existing issues for the same problem.
+          required: true

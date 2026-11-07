@@ -20,22 +20,9 @@ The script detects macOS/Linux and arm64/amd64, verifies `checksums.txt`, and
 installs to `~/.local/bin` by default. Override with `PREFIX` or pin a release
 with `WORKBENCH_VERSION=v0.1.1`.
 
-For a private checkout, pass a token:
-
-```sh
-GITHUB_TOKEN="$(gh auth token)" ./install.sh
-```
-
 ## Go
 
 ```sh
-go install github.com/solomonadzape95/workbench/cmd/workbench@latest
-```
-
-This requires read access to the repository. For a private module:
-
-```sh
-export GOPRIVATE=github.com/solomonadzape95/workbench
 go install github.com/solomonadzape95/workbench/cmd/workbench@latest
 ```
 
@@ -47,8 +34,9 @@ brew install solomonadzape95/tap/workbench
 
 The tap lives at
 [`solomonadzape95/homebrew-tap`](https://github.com/solomonadzape95/homebrew-tap)
-and currently carries `v0.1.1`. Update `Formula/workbench.rb` for future tags,
-or enable the GoReleaser cask publisher with a tap token.
+and currently carries `v0.1.1`. Until the GoReleaser publisher is enabled with a
+tap token, update `Formula/workbench.rb` in that repository when a new tag is
+released.
 
 ## Build from source
 

@@ -4,18 +4,43 @@
 
 <h1 align="center">Workbench</h1>
 
-A keyboard-driven terminal workbench for file operations: convert, compress,
-resize, transform, and transcribe local media and documents, in batches, in
-parallel, with pipelines you can save and re-run.
+<p align="center">
+  A keyboard-driven terminal workbench for local files: convert, compress, resize,
+  transcribe, and transform in batches, in parallel, with pipelines you can save and re-run.
+</p>
 
-**Website:** [workbench.thesolenoid.space](http://workbench.thesolenoid.space)
+<p align="center">
+  <a href="https://github.com/solomonadzape95/workbench/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/solomonadzape95/workbench?style=flat-square"></a>
+  <a href="go.mod"><img alt="Go version" src="https://img.shields.io/github/go-mod/go-version/solomonadzape95/workbench?style=flat-square"></a>
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux-f5a742?style=flat-square">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square"></a>
+</p>
 
-**Status:** M8 — an organized TUI shell with a simple home screen, a built-in
-text editor, eight theme presets with previews, and a local agent API. The product and
-architecture spec lives in [`SPEC.md`](./SPEC.md); the TUI structure plan is in
-[`docs/tui-architecture.md`](./docs/tui-architecture.md). The humanizer guide is
-in [`docs/humanizer.md`](./docs/humanizer.md), and the detector methodology is in
-[`docs/ai-detector.md`](./docs/ai-detector.md).
+<p align="center">
+  <a href="https://workbench.thesolenoid.space">Website</a> ·
+  <a href="./docs/agent-api.md">Agent API</a> ·
+  <a href="./SPEC.md">Product spec</a>
+</p>
+
+**Status:** v0.1.1 — 65 operations across image, audio, video, document, and file.
+One binary, optional engines, and four ways to drive it: the TUI, `wb run`, a
+local HTTP API, and an MCP server.
+
+**Why local-first:** the core operations never upload your files. Optional
+engines (ffmpeg, yt-dlp, whisper.cpp, LibreOffice, pandoc, Tesseract,
+Ghostscript, pdf2docx, poppler, rembg, Real-ESRGAN, and OpenCode) are detected
+only when an operation needs them.
+
+## Why Workbench
+
+- **Batch-native.** Point it at a glob or folder and run one operation across
+  every file, in parallel.
+- **Chain anything.** Convert → resize → remove background, or download →
+  transcribe → rewrite, then save the chain as a pipeline and re-run it later.
+- **One runner, four surfaces.** The TUI, CLI, HTTP API, and MCP server share the
+  same operations, engine limits, cancellation, and atomic output handling.
+- **Local-first by default.** No accounts, no uploads, and no second API key for
+  the core operations. AI features use your local OpenCode service.
 
 ## Install
 
@@ -89,6 +114,54 @@ From the dashboard:
 6. `x` cancels the selected job after a confirmation; cancelled jobs leave no partial output.
 7. `e` opens the built-in editor for a file; `s` opens Settings (output folder, theme, max jobs); `?` (or `F1`) opens contextual help. From Aliases, `e` opens `config.toml` in the same editor.
 8. Jobs persist. `l` opens a log, `enter` opens an AI report when one exists (otherwise the log), `r` reruns, `R` retries failed items, and `o` reveals the output folder. `wb history list` shows the same history from the shell.
+
+## Demo
+
+```sh
+# Convert and shrink a folder of screenshots.
+wb run --op image.convert --param format=jpeg --param quality=82 \
+  --input "~/Pictures/Screenshots/*.png" --output ~/Workbench/demo
+
+# Turn a PDF into an editable DOCX.
+wb run --op doc.convert --param format=docx \
+  --input ~/Documents/report.pdf --output ~/Workbench/demo
+
+# See which optional engines are ready.
+wb doctor
+```
+
+In the TUI, the same job is `ctrl+p` → operation → input → `ctrl+r`.
+Save it with `ctrl+s` and reload it from `ctrl+p` → `#`.
+
+## Pipelines
+
+Pipelines are plain TOML in `~/.local/share/workbench/pipelines/`. Save one from
+the TUI with `ctrl+s`, or write it by hand:
+
+```toml
+name        = "web-image"
+version     = 1
+description = "Screenshots → JPEG 82 → 1600px wide"
+
+[[step]]
+op = "image.convert"
+[step.params]
+format  = "jpeg"
+quality = 82
+
+[[step]]
+op = "image.resize"
+[step.params]
+width  = 1600
+height = 1600
+mode   = "fit"
+```
+
+Run it with:
+
+```sh
+wb run --pipeline web-image --input "@screenshots" --output ~/Out
+```
 
 ## What works
 
@@ -249,8 +322,8 @@ English, and heavily edited AI text can land in the uncertain middle. Read
 ## Agent API
 
 `wb serve` starts a local JSON API over the same operations and runner as the
-TUI, so an agent or script can list tools, start jobs, poll them, and inspect
-outputs. It binds to `127.0.0.1:8765` by default.
+TUI, so an agent or script can list tools, start jobs, stream progress, and
+inspect outputs. It binds to `127.0.0.1:8765` by default.
 
 ```sh
 ./bin/wb serve --token dev-secret
@@ -259,8 +332,18 @@ curl -s -H 'Authorization: Bearer dev-secret' http://127.0.0.1:8765/v1/operation
 
 Endpoints: `GET /v1/operations`, `GET /v1/engines`, `GET /v1/pipelines`,
 `POST /v1/jobs`, `GET /v1/jobs`, `GET /v1/jobs/{id}?wait=30`,
+`GET /v1/jobs/{id}/events` (SSE), `GET /v1/jobs/{id}/artifacts`,
 `POST /v1/jobs/{id}/cancel|retry|rerun`. See
 [`docs/agent-api.md`](./docs/agent-api.md) for request and response examples.
+
+For agents that speak MCP instead of HTTP:
+
+```sh
+./bin/wb mcp                    # stdio MCP server
+```
+
+Each operation becomes a `wb_<operation_id>` tool with typed parameters. The
+server implements `initialize`, `tools/list`, and `tools/call`.
 
 ## Configuration
 
@@ -293,7 +376,11 @@ glob = "*.png"
 [opencode]
 url      = ""  # empty = auto-discover from `opencode service status`
 password = ""  # empty = read ~/.config/opencode/service.json or OPENCODE_SERVICE_PASSWORD
+allow_paid = false  # explicit provider/model works regardless; true lets auto use paid models
+allowed_providers = []  # optional: ["anthropic", "openai"]; empty = all
 ```
+
+Connect model providers in OpenCode with `/connect` (or its provider config); Workbench never sees those keys. Use `opencode models` to find `provider/model` IDs.
 
 ## Development
 
@@ -351,3 +438,13 @@ In the editor: `ctrl+s` save, `ctrl+z`/`ctrl+y` undo/redo, `ctrl+f` find,
 `ctrl+n`/`ctrl+p` (or `F3`/`Shift+F3`) next/previous match, `ctrl+←`/`ctrl+→`
 word movement, `ctrl+backspace` delete a word, `ctrl+u` delete to line start,
 `esc`/`ctrl+q` close (dirty buffers ask to save or discard).
+
+## Contributing
+
+Issues and pull requests are welcome. See
+[CONTRIBUTING.md](./CONTRIBUTING.md) for the local checks and the operation
+checklist.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

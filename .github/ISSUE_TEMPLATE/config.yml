@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Install and quickstart
+    url: https://github.com/solomonadzape95/workbench#install
+    about: Install Workbench, run your first operation, and check your engines.
+  - name: Documentation
+    url: https://github.com/solomonadzape95/workbench/tree/main/docs
+    about: Agent API, install, persistence, TUI architecture, and keymaps.
+  - name: Website
+    url: https://workbench.thesolenoid.space
+    about: The project homepage and feature overview.

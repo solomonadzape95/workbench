@@ -48,6 +48,7 @@ homebrew_casks:
     description: Keyboard-driven terminal workbench for local file operations
     binaries:
       - wb
-    # The repository is currently private. Remove this once the source or
-    # release artifacts are public and HOMEBREW_TAP_GITHUB_TOKEN is configured.
+    # The tap formula is currently maintained by hand in
+    # solomonadzape95/homebrew-tap. Set HOMEBREW_TAP_GITHUB_TOKEN and remove
+    # skip_upload to publish it from GoReleaser instead.
     skip_upload: true
