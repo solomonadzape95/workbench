@@ -40,7 +40,7 @@
         <a href="#install" data-key="i" data-panel="install"><span class="key">i</span><span class="name">Install</span><span class="desc">Homebrew, release binaries, or Go</span></a>
         <a href="#docs" data-key="d" data-panel="docs"><span class="key">d</span><span class="name">Docs</span><span class="desc">operations, pipelines, and the agent API</span></a>
         <a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span><span class="name">GitHub</span><span class="desc">source, issues, and releases</span></a>
-        <a href="#releases" data-key="r" data-panel="releases"><span class="key">r</span><span class="name">Releases</span><span class="desc">v0.1.1 binaries and checksums</span></a>
+        <a href="#releases" data-key="r" data-panel="releases"><span class="key">r</span><span class="name">Releases</span><span class="desc">latest binaries and checksums</span></a>
         <a href="#agents" data-key="a" data-panel="agents"><span class="key">a</span><span class="name">Agents</span><span class="desc">HTTP API, SSE, OpenAPI, and MCP</span></a>
         <a href="#help" data-key="?" data-panel="help"><span class="key">?</span><span class="name">Help</span><span class="desc">README and keymap</span></a>
       </div>
@@ -141,6 +141,9 @@
       <h3>First run</h3>
       <pre><code>wb</code></pre>
       <p>Press <kbd>n</kbd> for a new job, <kbd>a</kbd> for the AI detector, <kbd>j</kbd> for jobs, or <kbd>?</kbd> for the keymap.</p>
+      <h3>Missing engines</h3>
+      <pre><code>wb engines install</code></pre>
+      <p>Pick the optional engines you want. <code>--all</code> preselects everything with an automatic installer. Real-ESRGAN and OpenCode are manual downloads; whisper.cpp needs a model after the binary.</p>
       <p class="doc-note">Requirements: macOS or Linux. Builds and release assets are produced by GoReleaser.</p>
     </div>
   </template>
@@ -179,15 +182,15 @@ wb mcp                        # stdio MCP server</code></pre>
   <template id="panel-releases">
     <div class="doc">
       <p class="doc-kicker">RELEASES</p>
-      <h2>v0.1.1</h2>
-      <p>Latest release. One binary, five domains, 65 operations.</p>
-      <div class="doc-assets">
+      <h2 id="release-version">v0.1.1</h2>
+      <p id="release-summary">Latest release from GitHub.</p>
+      <div class="doc-assets" id="release-assets">
         <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/workbench_0.1.1_darwin_arm64.tar.gz" target="_blank" rel="noreferrer"><span>darwin / arm64</span><span>4.9 MB</span></a>
         <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/workbench_0.1.1_darwin_amd64.tar.gz" target="_blank" rel="noreferrer"><span>darwin / amd64</span><span>5.3 MB</span></a>
         <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/workbench_0.1.1_linux_arm64.tar.gz" target="_blank" rel="noreferrer"><span>linux / arm64</span><span>4.8 MB</span></a>
         <a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/workbench_0.1.1_linux_amd64.tar.gz" target="_blank" rel="noreferrer"><span>linux / amd64</span><span>5.2 MB</span></a>
       </div>
-      <p><a href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/checksums.txt" target="_blank" rel="noreferrer">checksums.txt</a> · <a href="https://github.com/solomonadzape95/workbench/releases" target="_blank" rel="noreferrer">all releases</a></p>
+      <p><a id="release-checksums" href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.1/checksums.txt" target="_blank" rel="noreferrer">checksums.txt</a> · <a href="https://github.com/solomonadzape95/workbench/releases" target="_blank" rel="noreferrer">all releases</a></p>
       <h3>Install</h3>
       <pre><code>brew install solomonadzape95/tap/workbench</code></pre>
       <p class="doc-note">Homebrew cask packaging and release artifacts are built by GoReleaser.</p>
@@ -232,6 +235,7 @@ curl -H "Authorization: Bearer dev-secret" \
 
   <script src="dither.js"></script>
   <script src="copy.js"></script>
+  <script src="releases.js"></script>
   <script src="tui.js"></script>
   <script src="keys.js"></script>
 </body>

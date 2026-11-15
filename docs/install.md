@@ -18,7 +18,23 @@ curl -fsSL https://raw.githubusercontent.com/solomonadzape95/workbench/main/inst
 
 The script detects macOS/Linux and arm64/amd64, verifies `checksums.txt`, and
 installs to `~/.local/bin` by default. Override with `PREFIX` or pin a release
-with `WORKBENCH_VERSION=v0.1.1`.
+with `WORKBENCH_VERSION=v0.1.2`.
+
+## Install missing engines
+
+Workbench works without the optional engines, but each one unlocks more
+operations. `wb engines install` opens a picker with every missing engine:
+
+```sh
+wb engines install          # choose engines
+wb engines install --all    # preselect everything with an automatic installer
+```
+
+On macOS the picker runs Homebrew and Python installs for you. Linux package
+manager commands that need `sudo` are shown as manual commands instead of being
+run unattended. Real-ESRGAN and OpenCode are manual downloads; whisper.cpp needs
+a ggml model after the binary is installed. Restart Workbench after installing
+so the engine registry sees the new tools.
 
 ## Go
 
@@ -34,7 +50,7 @@ brew install solomonadzape95/tap/workbench
 
 The tap lives at
 [`solomonadzape95/homebrew-tap`](https://github.com/solomonadzape95/homebrew-tap)
-and currently carries `v0.1.1`. Until the GoReleaser publisher is enabled with a
+and currently carries `v0.1.2`. Until the GoReleaser publisher is enabled with a
 tap token, update `Formula/workbench.rb` in that repository when a new tag is
 released.
 

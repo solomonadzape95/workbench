@@ -128,6 +128,47 @@ func TestRunnerCopiesAndCommits(t *testing.T) {
 	}
 }
 
+func TestRunnerWritesBesideEachInput(t *testing.T) {
+	firstDir := t.TempDir()
+	secondDir := t.TempDir()
+	inputs := []core.Artifact{
+		writeInput(t, firstDir, "a.txt", "alpha"),
+		writeInput(t, secondDir, "b.txt", "beta"),
+	}
+
+	r := testRunner(t, 2, file.Copy{})
+	job, err := r.Start(
+		core.Pipeline{Name: "copy beside", Steps: []core.Step{{Op: "file.copy"}}},
+		inputs,
+		core.Target{Dir: firstDir, BesideInput: true, Collision: core.CollisionSuffix},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	done, _ := waitJobs(t, r, 1)
+	if done[job.ID()].Status != core.StatusDone {
+		t.Fatalf("status = %v", done[job.ID()].Status)
+	}
+
+	live, ok := r.Job(job.ID())
+	if !ok {
+		t.Fatal("job missing")
+	}
+	view := live.Snapshot()
+	got := map[string]bool{}
+	for _, item := range view.Items {
+		for _, out := range item.Outputs {
+			got[filepath.Dir(out.Path)] = true
+			if filepath.Dir(out.Path) != filepath.Dir(item.Input.Path) {
+				t.Errorf("output %q is not beside input %q", out.Path, item.Input.Path)
+			}
+		}
+	}
+	if !got[firstDir] || !got[secondDir] {
+		t.Fatalf("output folders = %v, want both input folders", got)
+	}
+}
+
 func TestRunnerCancelLeavesNoOutput(t *testing.T) {
 	entered := make(chan struct{}, 2)
 	block := testOp{id: "test.block", run: func(ctx context.Context, req core.Request, rep core.Reporter) (core.Result, error) {

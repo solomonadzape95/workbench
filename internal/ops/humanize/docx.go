@@ -566,7 +566,7 @@ func (h *Humanize) runDOCX(
 	}
 	if fallback == len(doc.paragraphs) {
 		return core.Artifact{}, "", 0, core.NewError(core.CodeEngineFailed, humanizeSpec.ID, item.Path,
-			"no free model could rewrite the DOCX text", "check that OpenCode is running and a free model is enabled")
+			"no model could rewrite the DOCX text", "check that OpenCode is running and a model is connected")
 	}
 
 	applied := 0

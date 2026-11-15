@@ -76,12 +76,13 @@ type ItemView struct {
 }
 
 type StepView struct {
-	ID     string
-	Op     string
-	Title  string
-	Index  int
-	Status core.Status
-	Err    error
+	ID       string
+	Op       string
+	Title    string
+	Index    int
+	Status   core.Status
+	Err      error
+	Duration time.Duration
 }
 
 type JobView struct {
@@ -231,9 +232,17 @@ func (j *Job) Snapshot() JobView {
 	}
 	view.Steps = make([]StepView, len(j.steps))
 	for i, st := range j.steps {
+		var duration time.Duration
+		if !st.started.IsZero() {
+			end := st.finished
+			if end.IsZero() {
+				end = time.Now()
+			}
+			duration = end.Sub(st.started)
+		}
 		view.Steps[i] = StepView{
 			ID: st.id, Op: st.op, Title: st.title, Index: st.index,
-			Status: st.status, Err: st.err,
+			Status: st.status, Err: st.err, Duration: duration,
 		}
 	}
 	view.Logs = append([]string(nil), j.logs...)

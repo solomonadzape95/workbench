@@ -32,23 +32,6 @@ var styleOptions = []core.Option{
 	{Value: "narrative", Label: "Narrative"},
 }
 
-var modelOptions = []core.Option{
-	{Value: "auto", Label: "Auto (free fallback)"},
-	{Value: "nvidia/nvidia/nemotron-3-ultra-550b-a55b", Label: "Nemotron 3 Ultra (free)"},
-	{Value: "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b", Label: "Nemotron Lightning (free)"},
-	{Value: "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b", Label: "Nemotron Super VL (free)"},
-	{Value: "nvidia/minimaxai/minimax-m3.1-flash", Label: "MiniMax M3.1 Flash (free)"},
-	{Value: "nvidia/poolside/laguna-xs-2.1", Label: "Laguna XS (free)"},
-	{Value: "nvidia/openai/gpt-oss-20b", Label: "GPT OSS 20B (free)"},
-	{Value: "nvidia/stepfun-ai/step-5-preview", Label: "Step 5 Preview (free)"},
-	{Value: "opencode/deepseek-v4.1-flash-free", Label: "DeepSeek V4.1 Flash (free)"},
-	{Value: "opencode/glm-5.3-flash-free", Label: "GLM-5.3 Flash (free)"},
-	{Value: "opencode/mimo-v2.6-flash-free", Label: "MiMo V2.6 Flash (free)"},
-	{Value: "opencode/big-pickle", Label: "Big Pickle (free)"},
-	{Value: "opencode-go/iceman-contributor-free", Label: "Iceman Contributor (free)"},
-	{Value: "opencode-go/beam-free", Label: "Beam (free)"},
-}
-
 var humanizeSpec = core.Spec{
 	ID:      "doc.humanize",
 	Title:   "Humanize text",
@@ -62,9 +45,8 @@ var humanizeSpec = core.Spec{
 			Help:    "The rules file supplies the voice for each style.",
 		},
 		{
-			Key: "model", Label: "Model", Type: core.ParamEnum, Default: "auto",
-			Options: modelOptions,
-			Help:    "Auto tries free models in order and falls back when one is limited or unavailable.",
+			Key: "model", Label: "Model", Type: core.ParamString, Default: "auto",
+			Help: "auto tries free models in order; enter provider/model to use a model you connected in OpenCode (run `opencode models`).",
 		},
 		{
 			Key: "voice", Label: "Voice sample", Type: core.ParamPath, Default: "", Advanced: true,
@@ -95,7 +77,7 @@ var humanizeSpec = core.Spec{
 // Generator is the part of the OpenCode client the operation needs. Keeping it
 // small makes the operation testable without a running service.
 type Generator interface {
-	FreeModels(context.Context) ([]opencode.ModelRef, error)
+	Models(context.Context) ([]opencode.ModelRef, error)
 	Generate(context.Context, opencode.ModelRef, string) (string, error)
 }
 
@@ -116,6 +98,10 @@ func (h *Humanize) Spec() core.Spec { return humanizeSpec }
 func (h *Humanize) Validate(_ context.Context, req core.Request) error {
 	if err := core.Validate(humanizeSpec.Params, req.Params); err != nil {
 		return err
+	}
+	if err := opencode.ValidateRef(req.Params.String("model")); err != nil {
+		return core.NewError(core.CodeUsage, humanizeSpec.ID, "", err.Error(),
+			"use auto or provider/model, for example anthropic/claude-sonnet-5-5")
 	}
 	if len(req.Items) == 0 {
 		return core.NewError(core.CodeUsage, humanizeSpec.ID, "", "no input files", "")
@@ -242,7 +228,7 @@ func (h *Humanize) Run(ctx context.Context, req core.Request, rep core.Reporter)
 				return core.Result{}, err
 			}
 			return core.Result{}, core.Wrap(core.CodeEngineFailed, humanizeSpec.ID, item.Path, err,
-				"check that OpenCode is running and that a free model is enabled; run `opencode models`")
+				"check that OpenCode is running and that a model is connected; run `opencode models`")
 		}
 		if stats.model != "" {
 			rep.Log(core.LevelInfo, "%s: humanized with %s (%d chunk(s), %d kept original)",
@@ -396,7 +382,7 @@ func (h *Humanize) runChunks(
 	}
 	if fallback == len(chunks) {
 		if firstErr == nil {
-			firstErr = errors.New("no free model could rewrite the text")
+			firstErr = errors.New("no model could rewrite the text")
 		}
 		return nil, stats, firstErr
 	}
@@ -412,16 +398,19 @@ func (h *Humanize) rewrite(
 	chunk, coreRules, styleText, voice, protectedNote, previous, requested string,
 	rep core.Reporter,
 ) (string, opencode.ModelRef, error) {
-	models, err := h.freeModels(ctx)
+	models, err := h.availableModels(ctx)
 	if err != nil {
-		return "", opencode.ModelRef{}, err
+		if strings.TrimSpace(requested) == "" || strings.EqualFold(requested, "auto") {
+			return "", opencode.ModelRef{}, err
+		}
+		models = nil
 	}
 	chain := h.chain(requested, models)
 	candidates := h.available(chain)
 	if len(candidates) == 0 {
 		h.clearDown()
 		candidates = h.available(chain)
-		rep.Log(core.LevelWarn, "all free models were marked unavailable; retrying the fallback chain")
+		rep.Log(core.LevelWarn, "all models were marked unavailable; retrying the fallback chain")
 	}
 
 	var lastErr error
@@ -444,10 +433,10 @@ func (h *Humanize) rewrite(
 			}
 			if opencode.IsModelUnavailable(err) {
 				h.markDown(model, err)
-				rep.Log(core.LevelWarn, "model %s unavailable; trying the next free model: %v", model, err)
+				rep.Log(core.LevelWarn, "model %s unavailable; trying the next model: %v", model, err)
 				continue
 			}
-			rep.Log(core.LevelWarn, "model %s failed; trying the next free model: %v", model, err)
+			rep.Log(core.LevelWarn, "model %s failed; trying the next model: %v", model, err)
 			continue
 		}
 		h.setPreferred(model)
@@ -462,7 +451,7 @@ func (h *Humanize) rewrite(
 		return out, model, nil
 	}
 	if lastErr == nil {
-		lastErr = errors.New("no free model was available")
+		lastErr = errors.New("no model was available")
 	}
 	return "", opencode.ModelRef{}, lastErr
 }
@@ -585,7 +574,7 @@ func (e *modelTimeoutError) Error() string {
 	return fmt.Sprintf("model did not answer within %s", e.Duration)
 }
 
-func (h *Humanize) freeModels(ctx context.Context) ([]opencode.ModelRef, error) {
+func (h *Humanize) availableModels(ctx context.Context) ([]opencode.ModelRef, error) {
 	h.mu.Lock()
 	if len(h.models) > 0 && time.Since(h.modelsAt) < 10*time.Minute {
 		models := append([]opencode.ModelRef(nil), h.models...)
@@ -594,7 +583,7 @@ func (h *Humanize) freeModels(ctx context.Context) ([]opencode.ModelRef, error) 
 	}
 	h.mu.Unlock()
 
-	models, err := h.Client.FreeModels(ctx)
+	models, err := h.Client.Models(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -620,7 +609,7 @@ func (h *Humanize) chain(requested string, models []opencode.ModelRef) []opencod
 		out = append(out, ref)
 	}
 
-	if strings.TrimSpace(requested) != "" && requested != "auto" {
+	if strings.TrimSpace(requested) != "" && !strings.EqualFold(requested, "auto") {
 		if ref, err := opencode.ParseRef(requested); err == nil {
 			add(withVariant(ref, models))
 		}
@@ -628,7 +617,7 @@ func (h *Humanize) chain(requested string, models []opencode.ModelRef) []opencod
 	h.mu.Lock()
 	preferred := h.preferred
 	h.mu.Unlock()
-	if preferred.ID != "" {
+	if preferred.ID != "" && containsModel(models, preferred) {
 		add(withVariant(preferred, models))
 	}
 	for _, model := range models {
@@ -647,6 +636,15 @@ func withVariant(ref opencode.ModelRef, models []opencode.ModelRef) opencode.Mod
 		}
 	}
 	return ref
+}
+
+func containsModel(models []opencode.ModelRef, ref opencode.ModelRef) bool {
+	for _, model := range models {
+		if model.ProviderID == ref.ProviderID && model.ID == ref.ID {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Humanize) available(chain []opencode.ModelRef) []opencode.ModelRef {
@@ -734,11 +732,6 @@ func outputFormat(ext string) string {
 func floatPtr(v float64) *float64 { return &v }
 
 // Models returns the static model choices for tests and the API catalog.
-func Models() []core.Option {
-	out := append([]core.Option(nil), modelOptions...)
-	return out
-}
-
 // Styles returns the static style choices.
 func Styles() []core.Option {
 	out := append([]core.Option(nil), styleOptions...)

@@ -42,6 +42,18 @@ func names(arts []core.Artifact) []string {
 	return out
 }
 
+func TestResolvePreservesExplicitOrder(t *testing.T) {
+	root, aliases := fixture(t)
+	raw := filepath.Join(root, "b.png") + ", " + filepath.Join(root, "a.png")
+	arts, err := Resolve(raw, aliases)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := names(arts); len(got) != 2 || got[0] != "b.png" || got[1] != "a.png" {
+		t.Fatalf("explicit order = %v, want b.png a.png", got)
+	}
+}
+
 func TestResolveGlobAndDirectory(t *testing.T) {
 	root, aliases := fixture(t)
 

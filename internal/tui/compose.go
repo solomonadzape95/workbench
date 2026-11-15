@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -35,6 +36,12 @@ type compose struct {
 	focus     composeFocus
 	savedName string
 	mode      core.SourceKind
+
+	// inPlace writes finished files next to their source files instead of the
+	// output folder. outputFocus is 0 while the folder field has focus and 1
+	// while the "save beside input" row has focus.
+	inPlace     bool
+	outputFocus int
 
 	editing    int // -1 when the chain is shown; otherwise the step being edited
 	fields     []*composeField
@@ -218,7 +225,83 @@ func (c *compose) cancelStep() {
 
 func (c *compose) handleChainKey(msg tea.KeyPressMsg, cfg config.Config) tea.Cmd {
 	key := msg.String()
-	if c.focus == focusInput && c.mode != core.SourceURLs && len(c.suggestions) > 0 {
+
+	// Power keys move between the three phases without going through a field.
+	switch key {
+	case "ctrl+right", "alt+right":
+		c.advancePhase()
+		return nil
+	case "ctrl+left", "alt+left":
+		c.retreatPhase()
+		return nil
+	}
+
+	switch c.focus {
+	case focusInput:
+		return c.handleInputKey(msg, cfg)
+	case focusOutput:
+		return c.handleOutputKey(msg, cfg)
+	default:
+		return c.handleStepsKey(msg)
+	}
+}
+
+func (c *compose) advancePhase() {
+	switch c.focus {
+	case focusInput:
+		c.focus = focusOutput
+		if c.inPlace {
+			c.outputFocus = 1
+		} else {
+			c.outputFocus = 0
+		}
+	case focusOutput:
+		c.focus = focusSteps
+	}
+	c.formErr = nil
+}
+
+func (c *compose) retreatPhase() {
+	switch c.focus {
+	case focusOutput:
+		c.focus = focusInput
+	case focusSteps:
+		c.focus = focusOutput
+		if c.inPlace {
+			c.outputFocus = 1
+		} else {
+			c.outputFocus = 0
+		}
+	}
+	c.formErr = nil
+}
+
+func (c *compose) canLeaveInput() bool {
+	if c.resolving {
+		return false
+	}
+	return c.inputErr == nil && len(c.artifacts) > 0
+}
+
+// acceptSuggestion applies the highlighted completion. It reports false when
+// the input already equals that choice, which lets the next Tab move focus
+// instead of trapping the cursor in the completion list.
+func (c *compose) acceptSuggestion(cfg config.Config) (bool, tea.Cmd) {
+	if len(c.suggestions) == 0 {
+		return false, nil
+	}
+	choice := c.suggestions[clamp(c.suggestIndex, 0, len(c.suggestions)-1)]
+	next := replaceLastToken(c.input, choice)
+	if next == c.input {
+		return false, nil
+	}
+	c.setText(next)
+	return true, c.afterTextChange(cfg)
+}
+
+func (c *compose) handleInputKey(msg tea.KeyPressMsg, cfg config.Config) tea.Cmd {
+	key := msg.String()
+	if c.mode != core.SourceURLs && len(c.suggestions) > 0 {
 		switch key {
 		case "down":
 			c.suggestIndex = clamp(c.suggestIndex+1, 0, len(c.suggestions)-1)
@@ -226,41 +309,148 @@ func (c *compose) handleChainKey(msg tea.KeyPressMsg, cfg config.Config) tea.Cmd
 		case "up":
 			c.suggestIndex = clamp(c.suggestIndex-1, 0, len(c.suggestions)-1)
 			return nil
-		case "enter", "tab":
-			c.setText(replaceLastToken(c.input, c.suggestions[c.suggestIndex]))
-			return c.afterTextChange(cfg)
+		case "tab":
+			if accepted, cmd := c.acceptSuggestion(cfg); accepted {
+				return cmd
+			}
+			if c.canLeaveInput() {
+				c.advancePhase()
+			}
+			return nil
+		case "enter":
+			if c.canLeaveInput() {
+				c.advancePhase()
+				return nil
+			}
+			if accepted, cmd := c.acceptSuggestion(cfg); accepted {
+				return cmd
+			}
 		}
 	}
 	switch key {
 	case "tab":
-		c.focus = composeFocus((int(c.focus) + 1) % 3)
+		if c.canLeaveInput() {
+			c.advancePhase()
+		} else {
+			c.formErr = c.inputGateError()
+		}
+		return nil
+	case "enter":
+		if c.canLeaveInput() {
+			c.advancePhase()
+		} else {
+			c.formErr = c.inputGateError()
+		}
 		return nil
 	case "shift+tab":
-		c.focus = composeFocus((int(c.focus) + 2) % 3)
-		return nil
-	case "ctrl+right", "alt+right":
-		c.focus = composeFocus((int(c.focus) + 1) % 3)
-		return nil
-	case "ctrl+left", "alt+left":
-		c.focus = composeFocus((int(c.focus) + 2) % 3)
 		return nil
 	}
+	return c.handleTextKey(msg, cfg)
+}
 
-	if c.focus == focusSteps {
+func (c *compose) inputGateError() error {
+	if c.resolving {
+		return fmt.Errorf("still resolving inputs — choose a file when the list settles")
+	}
+	if c.mode == core.SourceURLs {
+		return fmt.Errorf("enter at least one http(s) URL to continue")
+	}
+	return fmt.Errorf("choose at least one input file to continue")
+}
+
+func (c *compose) handleOutputKey(msg tea.KeyPressMsg, cfg config.Config) tea.Cmd {
+	key := msg.String()
+	if c.isURLFlow() {
 		switch key {
-		case "j", "down":
-			c.selected = clamp(c.selected+1, 0, max(len(c.steps)-1, 0))
-		case "k", "up":
-			c.selected = clamp(c.selected-1, 0, max(len(c.steps)-1, 0))
-		case "alt+down":
-			c.moveSelected(1)
-		case "alt+up":
-			c.moveSelected(-1)
+		case "tab", "down":
+			if c.outputReady() {
+				c.advancePhase()
+			} else {
+				c.formErr = fmt.Errorf("choose where downloads should go")
+			}
+			return nil
+		case "shift+tab", "up":
+			c.retreatPhase()
+			return nil
+		case "enter":
+			if c.outputReady() {
+				c.advancePhase()
+			} else {
+				c.formErr = fmt.Errorf("choose where downloads should go")
+			}
+			return nil
+		}
+		return c.handleTextKey(msg, cfg)
+	}
+	if c.outputFocus == 1 {
+		switch key {
+		case "left", "right", " ", "space":
+			c.inPlace = !c.inPlace
+			c.dirty = true
+			c.formErr = nil
+			return nil
+		case "enter":
+			if c.outputReady() {
+				c.advancePhase()
+			} else {
+				c.formErr = fmt.Errorf("choose an output folder, or save beside the input files")
+			}
+			return nil
+		case "tab", "down", "up":
+			c.outputFocus = 0
+			c.formErr = nil
+			return nil
+		case "shift+tab":
+			c.retreatPhase()
+			return nil
 		}
 		return nil
 	}
 
+	switch key {
+	case "tab", "down":
+		c.outputFocus = 1
+		c.formErr = nil
+		return nil
+	case "shift+tab", "up":
+		c.retreatPhase()
+		return nil
+	case "enter":
+		if c.outputReady() {
+			c.advancePhase()
+		} else {
+			c.formErr = fmt.Errorf("choose an output folder, or save beside the input files")
+		}
+		return nil
+	}
 	return c.handleTextKey(msg, cfg)
+}
+
+func (c *compose) outputReady() bool {
+	if c.inPlace {
+		return true
+	}
+	return strings.TrimSpace(c.output) != ""
+}
+
+func (c *compose) handleStepsKey(msg tea.KeyPressMsg) tea.Cmd {
+	switch msg.String() {
+	case "tab":
+		c.focus = focusInput
+		c.formErr = nil
+	case "shift+tab":
+		c.focus = focusOutput
+		c.formErr = nil
+	case "j", "down":
+		c.selected = clamp(c.selected+1, 0, max(len(c.steps)-1, 0))
+	case "k", "up":
+		c.selected = clamp(c.selected-1, 0, max(len(c.steps)-1, 0))
+	case "alt+down":
+		c.moveSelected(1)
+	case "alt+up":
+		c.moveSelected(-1)
+	}
+	return nil
 }
 
 func (c *compose) handleTextKey(msg tea.KeyPressMsg, cfg config.Config) tea.Cmd {
@@ -348,6 +538,12 @@ func (c *compose) refreshInputMode() {
 		c.inputErr = nil
 		c.resolving = false
 		c.formErr = nil
+		if mode == core.SourceURLs {
+			// Downloads have one logical destination, so "beside the source"
+			// does not apply.
+			c.inPlace = false
+			c.outputFocus = 0
+		}
 	}
 }
 
@@ -805,11 +1001,35 @@ func (c *compose) validateChain(reg *core.Registry) error {
 }
 
 func (c *compose) target(cfg config.Config) core.Target {
-	return core.Target{
-		Dir:       expandOutputDir(c.output),
-		Template:  cfg.Output.Template,
-		Collision: c.collision,
+	dir := expandOutputDir(c.output)
+	if c.inPlace {
+		// The runner resolves each item's real folder from its source path.
+		// Dir stays populated so validation and aggregate steps have a place.
+		if common := c.commonInputDir(); common != "" {
+			dir = common
+		}
 	}
+	return core.Target{
+		Dir:         dir,
+		Template:    cfg.Output.Template,
+		Collision:   c.collision,
+		BesideInput: c.inPlace,
+	}
+}
+
+// commonInputDir is the shared parent folder of the resolved inputs. It is the
+// best available fallback for validation and for aggregate output.
+func (c *compose) commonInputDir() string {
+	if len(c.artifacts) == 0 {
+		return ""
+	}
+	dir := filepath.Dir(c.artifacts[0].Path)
+	for _, art := range c.artifacts[1:] {
+		if filepath.Dir(art.Path) != dir {
+			return dir
+		}
+	}
+	return dir
 }
 
 func stepOutputFormat(step *composeStep) string {
@@ -924,108 +1144,359 @@ func (m App) composeView(height int) string {
 		return m.stepEditorView(height)
 	}
 
-	width := m.width - 4
-	title := "Pipeline"
+	width := min(m.width-4, 132)
+	title := "New job"
 	if c.savedName != "" {
 		title = "Pipeline · #" + c.savedName
 	}
-
-	if width >= 118 {
-		leftW := max(width*52/100, 50)
-		rightW := width - leftW - 1
-		left := m.panel(title, m.composePipelineContent(leftW-4), leftW, height, c.focus != focusSteps)
-		right := m.panel("Steps", m.composeStepsContent(rightW-4), rightW, height, c.focus == focusSteps)
-		return lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right)
-	}
-
-	pipeH := max(height*45/100, 7)
-	if pipeH > height-7 {
-		pipeH = height - 7
-	}
-	stepsH := height - pipeH - 1
-	if stepsH < 6 {
-		stepsH = 6
-		pipeH = height - stepsH - 1
-	}
-	return lipgloss.JoinVertical(lipgloss.Left,
-		m.panel(title, m.composePipelineContent(width-4), width, pipeH, c.focus != focusSteps),
-		m.panel("Steps", m.composeStepsContent(width-4), width, stepsH, c.focus == focusSteps))
+	contentWidth := max(width-4, 20)
+	content := m.composeStepper(c, contentWidth) + "\n\n" + m.composePhaseContent(c, contentWidth)
+	return m.panel(title, content, width, height, true)
 }
 
-func (m App) composePipelineContent(width int) string {
-	c := m.compose
-	valueWidth := width - 14 - 4
-	if valueWidth < 16 {
-		valueWidth = 16
+// composeStepper is the orientation device for the three-step flow. It names
+// every phase up front, marks completed phases, and repeats "step n of m" so a
+// narrow terminal does not lose the mental model.
+func (m App) composeStepper(c *compose, width int) string {
+	labels := []string{"Input", "Output", "Steps"}
+	blurbs := []string{
+		"Choose the files to work on",
+		"Choose where finished files go",
+		"Build the chain, then run it",
 	}
-	inputLabel := "Input"
-	inputPlaceholder := "path, glob, or @alias"
+	current := clamp(int(c.focus), 0, len(labels)-1)
+	if width < 48 {
+		return "  " + m.theme.accent.Render(fmt.Sprintf("Step %d of %d · %s", current+1, len(labels), labels[current])) +
+			m.theme.muted.Render(" · "+blurbs[current])
+	}
+
+	parts := make([]string, 0, len(labels))
+	for i, label := range labels {
+		var mark string
+		switch {
+		case i < current:
+			mark = m.theme.success.Render("✓")
+			label = m.theme.title.Render(label)
+		case i == current:
+			mark = m.theme.accent.Render("●")
+			label = m.theme.accent.Bold(true).Render(label)
+		default:
+			mark = m.theme.muted.Render("○")
+			label = m.theme.muted.Render(label)
+		}
+		parts = append(parts, fmt.Sprintf("%d %s %s", i+1, mark, label))
+	}
+	line := "  " + strings.Join(parts, m.theme.border.Render("  ──  "))
+	blurb := m.theme.muted.Render(fmt.Sprintf("  Step %d of %d · %s", current+1, len(labels), blurbs[current]))
+	return truncateStyled(line, width) + "\n" + truncateStyled(blurb, width)
+}
+
+func (m App) composePhaseContent(c *compose, width int) string {
+	switch c.focus {
+	case focusInput:
+		return m.composeInputContent(c, width)
+	case focusOutput:
+		return m.composeOutputContent(c, width)
+	default:
+		return m.composeStepsContent(c, width)
+	}
+}
+
+func (c *compose) pipelineMode() core.Mode {
+	aggregate := false
+	direct := false
+	for _, step := range c.steps {
+		if step.spec.Aggregate() {
+			aggregate = true
+		}
+		if step.spec.Direct() {
+			direct = true
+		}
+	}
+	if aggregate {
+		return core.ModeAggregate
+	}
+	if direct && len(c.steps) == 1 {
+		return core.ModeDirect
+	}
+	return core.ModePerItem
+}
+
+func (m App) composeInputContent(c *compose, width int) string {
+	valueWidth := max(width-22, 16)
+	placeholder := "path, glob, or @alias"
+	label := "Path"
+	title := "Input files"
+	description := "Runs once per file; each file gets its own output."
+	switch c.pipelineMode() {
+	case core.ModeAggregate:
+		title = "Files to combine"
+		description = "Combines every selected file into one output."
+	case core.ModeDirect:
+		title = "Files to update"
+		description = "Updates each input file directly."
+	}
 	if c.isURLFlow() {
-		inputLabel = "URL"
-		inputPlaceholder = "https://… (comma or newline separated)"
+		label = "URL"
+		placeholder = "https://… (comma or newline separated)"
 	}
 
 	var lines []string
+	lines = append(lines, "  "+m.theme.title.Render(title), "")
+	lines = append(lines, "  "+m.theme.muted.Render(truncate(description, max(width-2, 12))), "")
 	if summary := m.chainSummary(c); summary != "" {
-		lines = append(lines, m.theme.muted.Render(truncate(summary, width)))
+		lines = append(lines, "  "+m.theme.muted.Render("Pipeline  ")+m.theme.accent.Render(truncate(summary, max(width-14, 12))), "")
 	}
 	lines = append(lines,
-		m.chainRow(c, focusInput, inputLabel, c.input, inputPlaceholder, valueWidth),
+		m.chainRow(label, c.input, placeholder, valueWidth, true),
 		m.inputStatus(c),
 	)
 
-	lines = append(lines,
-		m.chainRow(c, focusOutput, "Output", c.output, "", valueWidth),
-		"",
-	)
-	if c.formErr != nil {
-		lines = append(lines,
-			m.theme.danger.Render(truncate(c.formErr.Error(), width)))
-		if hint := core.HintOf(c.formErr); hint != "" {
-			lines = append(lines, m.theme.warning.Render(truncate("  "+hint, width)))
+	if !c.isURLFlow() && len(c.suggestions) > 0 {
+		lines = append(lines, "", "  "+m.theme.muted.Render("Matches"))
+		maxRows := min(len(c.suggestions), 5)
+		start := 0
+		if c.suggestIndex >= maxRows {
+			start = c.suggestIndex - maxRows + 1
 		}
-	} else if help := m.chainHelp(c); help != "" {
-		lines = append(lines, m.theme.muted.Render(truncate(help, width)))
+		for i := start; i < start+maxRows && i < len(c.suggestions); i++ {
+			marker := "   "
+			line := truncateTail(c.suggestions[i], max(width-8, 10))
+			if i == c.suggestIndex {
+				marker = m.theme.accent.Render("  ▸ ")
+				line = m.selectedRow(line, max(width-8, 10))
+			}
+			lines = append(lines, marker+line)
+		}
+		if len(c.suggestions) > maxRows {
+			lines = append(lines, "   "+m.theme.muted.Render(fmt.Sprintf("… %d more matches", len(c.suggestions)-maxRows)))
+		}
+	}
+
+	if c.input == "" && !c.isURLFlow() {
+		lines = append(lines, "", "  "+m.theme.accent.Render("Try"))
+		for _, example := range [][2]string{
+			{"~/Pictures/*.png", "every PNG in Pictures"},
+			{"@downloads", "browse your Downloads folder"},
+			{"@clipboard", "paths copied from Finder"},
+		} {
+			lines = append(lines, "  "+m.theme.accent.Render(padRight(example[0], 18))+m.theme.muted.Render(example[1]))
+		}
+	}
+
+	lines = append(lines, "")
+	lines = append(lines, m.composeErrorLines(c, width)...)
+	if c.formErr == nil {
+		if c.isURLFlow() {
+			lines = append(lines, "  "+m.theme.muted.Render("Enter continues · Esc goes back"))
+		} else {
+			lines = append(lines, "  "+m.theme.muted.Render("Tab completes · ctrl+f picks files · Enter continues · Esc goes back"))
+		}
 	}
 	return strings.Join(lines, "\n")
 }
 
-func (m App) composeStepsContent(width int) string {
-	c := m.compose
+func (m App) composeOutputContent(c *compose, width int) string {
+	valueWidth := max(width-22, 16)
 	var lines []string
-	if len(c.steps) == 0 {
-		lines = append(lines, m.theme.warning.Render("no steps — press n to add one"))
+	lines = append(lines, "  "+m.theme.title.Render("Output folder"), "")
+
+	folderFocused := c.outputFocus == 0
+	if c.inPlace {
+		lines = append(lines, "  "+m.theme.muted.Render(padRight("Folder", 14))+m.theme.muted.Render("(beside each input)"))
 	} else {
-		lines = append(lines, strings.Split(strings.TrimRight(m.stepList(c, width), "\n"), "\n")...)
+		lines = append(lines, m.chainRow("Folder", c.output, "", valueWidth, folderFocused))
 	}
-	lines = append(lines, "", m.theme.muted.Render("enter edit · n add · d remove · J/K move"))
-	if len(c.steps) > 0 {
-		step := c.steps[clamp(c.selected, 0, len(c.steps)-1)]
-		lines = append(lines, "", m.theme.accent.Render("Selected step"))
-		if len(step.spec.Params) == 0 {
-			lines = append(lines, m.theme.muted.Render("  no options"))
+
+	lines = append(lines, "")
+	toggleFocused := c.outputFocus == 1
+	if c.isURLFlow() {
+		lines = append(lines, "  "+m.theme.muted.Render("Downloads are written to the folder above."))
+	} else {
+		toggleMarker := "  "
+		toggleStyle := m.theme.muted
+		if toggleFocused {
+			toggleMarker = m.theme.accent.Render("▸ ")
+			toggleStyle = m.theme.accent
 		}
-		for _, p := range step.spec.Params {
-			value := fmt.Sprint(step.params[p.Key])
-			if p.Type == core.ParamEnum {
-				for _, opt := range p.Options {
-					if opt.Value == value && opt.Label != "" {
-						value = opt.Label
-						break
-					}
-				}
-			}
-			if p.Type == core.ParamBool {
-				if step.params.Bool(p.Key) {
-					value = "on"
-				} else {
-					value = "off"
-				}
-			}
-			lines = append(lines, "  "+m.theme.muted.Render(padRight(labelOf(p), 14))+truncate(value, max(width-18, 8)))
+		box := "[ ]"
+		if c.inPlace {
+			box = m.theme.success.Render("[x]")
+		}
+		lines = append(lines, toggleMarker+box+" "+toggleStyle.Render("Save beside input files"))
+		lines = append(lines, "      "+m.theme.muted.Render("Each finished file lands next to its source file."))
+		if c.inPlace {
+			lines = append(lines, "      "+m.theme.success.Render("The output folder above is ignored."))
+		}
+	}
+	lines = append(lines, "")
+
+	if len(c.artifacts) > 0 {
+		noun := "files"
+		if len(c.artifacts) == 1 {
+			noun = "file"
+		}
+		summary := fmt.Sprintf("%d %s", len(c.artifacts), noun)
+		if c.inPlace {
+			summary += " → beside their source files"
+		} else if dest := strings.TrimSpace(expandOutputDir(c.output)); dest != "" {
+			summary += " → " + dest
+		}
+		lines = append(lines, "  "+m.theme.muted.Render(truncate(summary, width-2)))
+	} else {
+		lines = append(lines, "  "+m.theme.muted.Render("Inputs will appear here once step 1 is set."))
+	}
+	lines = append(lines, "  "+m.theme.muted.Render("If a name exists  ")+m.theme.accent.Render(collisionLabel(c.collision)))
+	lines = append(lines, "")
+	lines = append(lines, m.composeErrorLines(c, width)...)
+	if c.formErr == nil {
+		switch {
+		case c.isURLFlow():
+			lines = append(lines, "  "+m.theme.muted.Render("Enter continues · Esc goes back"))
+		case toggleFocused:
+			lines = append(lines, "  "+m.theme.muted.Render("Space toggles · Tab returns to the folder · Enter continues · Esc goes back"))
+		default:
+			lines = append(lines, "  "+m.theme.muted.Render("Tab moves to the checkbox · Enter continues · Esc goes back"))
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+func (m App) composeStepsContent(c *compose, width int) string {
+	wide := width >= 76
+	leftW := width
+	if wide {
+		leftW = max(width*42/100, 34)
+	}
+	listWidth := max(leftW-2, 20)
+
+	var left strings.Builder
+	left.WriteString("  ")
+	left.WriteString(m.theme.title.Render("Chain"))
+	left.WriteString("\n\n")
+	if len(c.steps) == 0 {
+		left.WriteString("  ")
+		left.WriteString(m.theme.warning.Render(truncate("No steps yet — press n to add one.", listWidth)))
+		left.WriteString("\n")
+	} else {
+		left.WriteString(m.stepList(c, listWidth))
+	}
+	left.WriteString("\n")
+	left.WriteString("  ")
+	left.WriteString(m.theme.muted.Render(truncate("Enter edits · n adds · d removes", listWidth)))
+	left.WriteString("\n")
+
+	summary := "  " + m.composeRunSummary(c, width-2) + "\n\n"
+	if !wide {
+		return summary + left.String() + "\n" + m.stepDetail(c, width)
+	}
+	rightW := width - leftW - 3
+	leftBlock := lipgloss.NewStyle().Width(leftW).Render(left.String())
+	return summary + lipgloss.JoinHorizontal(lipgloss.Top, leftBlock, "   ", m.stepDetail(c, rightW))
+}
+
+func (m App) stepDetail(c *compose, width int) string {
+	var lines []string
+	lines = append(lines, "  "+m.theme.accent.Render("Selected step"))
+	if len(c.steps) == 0 {
+		lines = append(lines, "  "+m.theme.muted.Render("Add a step to see its options."))
+		return strings.Join(lines, "\n")
+	}
+	step := c.steps[clamp(c.selected, 0, len(c.steps)-1)]
+	lines = append(lines, "")
+	lines = append(lines, "  "+m.theme.title.Render(truncate(step.spec.Title, width-4)))
+	if step.spec.Summary != "" {
+		lines = append(lines, "  "+m.theme.muted.Render(truncate(step.spec.Summary, width-4)))
+	}
+	lines = append(lines, "")
+	if len(step.spec.Params) == 0 {
+		lines = append(lines, "  "+m.theme.muted.Render("This step has no options."))
+	}
+	for _, p := range step.spec.Params {
+		value := fmt.Sprint(step.params[p.Key])
+		if p.Type == core.ParamEnum {
+			for _, opt := range p.Options {
+				if opt.Value == value && opt.Label != "" {
+					value = opt.Label
+					break
+				}
+			}
+		}
+		if p.Type == core.ParamBool {
+			if step.params.Bool(p.Key) {
+				value = "on"
+			} else {
+				value = "off"
+			}
+		}
+		lines = append(lines, "  "+m.theme.muted.Render(padRight(labelOf(p), 14))+truncate(value, max(width-20, 8)))
+	}
+	if len(c.steps) > 0 {
+		lines = append(lines, "", "  "+m.theme.muted.Render("Enter opens the step editor."))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func collisionLabel(policy core.Collision) string {
+	switch policy {
+	case core.CollisionOverwrite:
+		return "overwrite the old file"
+	case core.CollisionSkip:
+		return "skip it"
+	case core.CollisionFail:
+		return "stop with an error"
+	default:
+		return "keep both (adds a number)"
+	}
+}
+
+func (m App) composeRunSummary(c *compose, width int) string {
+	if len(c.artifacts) == 0 {
+		return m.theme.warning.Render("Add inputs in step 1 before running.")
+	}
+	dest := "beside each input"
+	if !c.inPlace {
+		dest = strings.TrimSpace(expandOutputDir(c.output))
+		if dest == "" {
+			dest = "no output folder"
+		}
+	}
+	noun := "files"
+	if len(c.artifacts) == 1 {
+		noun = "file"
+	}
+	steps := "steps"
+	if len(c.steps) == 1 {
+		steps = "step"
+	}
+	outputs := fmt.Sprintf("%d outputs", len(c.artifacts))
+	switch c.pipelineMode() {
+	case core.ModeAggregate:
+		outputs = "1 combined output"
+		if c.inPlace {
+			dest = "next to the first input"
+		}
+	case core.ModeDirect:
+		outputs = "updated in place"
+		dest = "same files"
+	}
+	summary := fmt.Sprintf("Ready · %d %s · %d %s → %s · %s",
+		len(c.artifacts), noun, len(c.steps), steps, outputs, dest)
+	if c.formErr != nil {
+		return m.theme.danger.Render(truncate(c.formErr.Error(), width))
+	}
+	return m.theme.success.Render("● ") + m.theme.muted.Render(truncate(summary, max(width-2, 12)))
+}
+
+func (m App) composeErrorLines(c *compose, width int) []string {
+	if c.formErr == nil {
+		return nil
+	}
+	lines := []string{"  " + m.theme.danger.Render(truncate(c.formErr.Error(), width-2))}
+	if hint := core.HintOf(c.formErr); hint != "" {
+		lines = append(lines, "  "+m.theme.warning.Render(truncate(hint, width-2)))
+	}
+	return lines
 }
 
 func (m App) stepEditorView(height int) string {
@@ -1034,21 +1505,25 @@ func (m App) stepEditorView(height int) string {
 		return ""
 	}
 	step := c.steps[c.editing]
-	width := m.width - 4
-	contentWidth := width - 4
-	valueWidth := contentWidth - 14 - 4
+	width := min(m.width-4, 110)
+	contentWidth := max(width-4, 20)
+	valueWidth := contentWidth - 18
 	if valueWidth < 16 {
 		valueWidth = 16
 	}
 
 	var lines []string
+	lines = append(lines, "  "+m.theme.muted.Render(fmt.Sprintf("Editing step %d of %d", c.editing+1, len(c.steps))), "")
 	if step.spec.Summary != "" {
-		lines = append(lines, m.theme.muted.Render(truncate(step.spec.Summary, contentWidth)), "")
+		lines = append(lines, "  "+m.theme.muted.Render(truncate(step.spec.Summary, contentWidth-2)), "")
 	}
 	if len(c.fields) == 0 {
-		lines = append(lines, m.theme.muted.Render("This step has no options."))
+		lines = append(lines, "  "+m.theme.muted.Render("This step has no options."))
 	}
 	for i, f := range c.fields {
+		if i > 0 {
+			lines = append(lines, "")
+		}
 		focused := i == c.fieldFocus
 		marker := "  "
 		labelStyle := m.theme.muted
@@ -1057,7 +1532,7 @@ func (m App) stepEditorView(height int) string {
 			labelStyle = m.theme.accent
 		}
 		label, value := renderField(m.theme, f, valueWidth, focused && fieldAcceptsText(f))
-		lines = append(lines, marker+labelStyle.Render(padRight(label, 14))+"  "+value)
+		lines = append(lines, marker+labelStyle.Render(padRight(label, 16))+"  "+value)
 		if focused {
 			if hint := fieldHint(f); hint != "" {
 				lines = append(lines, "    "+m.theme.muted.Render(hint))
@@ -1067,20 +1542,20 @@ func (m App) stepEditorView(height int) string {
 	if len(c.fields) > 0 {
 		f := c.fields[c.fieldFocus]
 		if f.spec.Help != "" {
-			lines = append(lines, "", m.theme.muted.Render(truncate(labelOf(f.spec)+" — "+f.spec.Help, contentWidth)))
+			lines = append(lines, "", "  "+m.theme.muted.Render(truncate(labelOf(f.spec)+" — "+f.spec.Help, contentWidth-2)))
 		}
 	}
 	if c.formErr != nil {
-		lines = append(lines, "", m.theme.danger.Render(truncate(c.formErr.Error(), contentWidth)))
+		lines = append(lines, "", "  "+m.theme.danger.Render(truncate(c.formErr.Error(), contentWidth-2)))
 	}
-	lines = append(lines, "", m.theme.muted.Render("tab field · ←/→ adjust or move · space toggle · enter save"))
+	lines = append(lines, "", "  "+m.theme.muted.Render("Tab field · ←/→ adjust or move · space toggle · Enter saves · Esc cancels"))
 	return m.panel(fmt.Sprintf("Step %d · %s", c.editing+1, step.spec.Title), strings.Join(lines, "\n"), width, height, true)
 }
 
-func (m App) chainRow(c *compose, focus composeFocus, label, value, placeholder string, valueWidth int) string {
+func (m App) chainRow(label, value, placeholder string, valueWidth int, focused bool) string {
 	marker := "  "
 	labelStyle := m.theme.muted
-	if c.focus == focus {
+	if focused {
 		marker = m.theme.accent.Render("▸ ")
 		labelStyle = m.theme.accent
 	}
@@ -1088,14 +1563,16 @@ func (m App) chainRow(c *compose, focus composeFocus, label, value, placeholder 
 	if value == "" && placeholder != "" {
 		display = m.theme.muted.Render(placeholder)
 	}
-	if c.focus == focus {
+	if focused {
 		display += m.theme.accent.Render("▏")
 	}
 	return marker + labelStyle.Render(padRight(label, 14)) + "  " + display
 }
 
+// stepList renders the chain with one blank row between steps. The extra air
+// makes a five-step chain readable without losing the selection marker.
 func (m App) stepList(c *compose, width int) string {
-	const visible = 5
+	const visible = 6
 	start := 0
 	if c.selected >= visible {
 		start = c.selected - visible + 1
@@ -1103,21 +1580,22 @@ func (m App) stepList(c *compose, width int) string {
 	var b strings.Builder
 	for i := start; i < start+visible && i < len(c.steps); i++ {
 		step := c.steps[i]
-		marker := "  "
-		if i == c.selected {
-			marker = m.theme.accent.Render("▸ ")
-		}
+		selected := i == c.selected
 		titleStyle := lipgloss.NewStyle()
-		if c.focus == focusSteps && i == c.selected {
+		if c.focus == focusSteps && selected {
 			titleStyle = m.theme.accent
 		}
 		summary := stepParamsSummary(step)
-		b.WriteString(marker)
-		b.WriteString(titleStyle.Render(fmt.Sprintf("%d. %s", i+1, padRight(step.spec.Title, 24))))
-		b.WriteString(m.theme.muted.Render(truncate(summary, max(width-32, 10))))
+		line := titleStyle.Render(fmt.Sprintf("%d. %s", i+1, padRight(step.spec.Title, 24))) +
+			m.theme.muted.Render(truncate(summary, max(width-32, 10)))
+		b.WriteString(m.listRow(line, width, selected))
 		b.WriteString("\n")
+		if i < start+visible-1 && i < len(c.steps)-1 {
+			b.WriteString("\n")
+		}
 	}
 	if len(c.steps) > visible {
+		b.WriteString("\n")
 		b.WriteString(m.theme.muted.Render(fmt.Sprintf("  … %d steps total", len(c.steps))))
 		b.WriteString("\n")
 	}
@@ -1186,20 +1664,6 @@ func (m App) chainSummary(c *compose) string {
 	return strings.Join(titles, " → ")
 }
 
-func (m App) chainHelp(c *compose) string {
-	switch c.focus {
-	case focusInput:
-		if c.isURLFlow() {
-			return "input: one or more http(s) URLs, separated by commas"
-		}
-		return "type a path or @alias · tab completes · tab / shift+tab moves focus"
-	case focusOutput:
-		return "where finished files are written · tab / shift+tab moves focus"
-	default:
-		return "enter edits Format/Quality · n adds a step · ctrl+r runs · ctrl+s saves"
-	}
-}
-
 func stepParamsSummary(step *composeStep) string {
 	if step == nil || len(step.spec.Params) == 0 {
 		return ""
@@ -1247,10 +1711,6 @@ func (m App) inputStatus(c *compose) string {
 	switch {
 	case c.resolving:
 		return m.theme.muted.Render("  resolving…")
-	case len(c.suggestions) > 0:
-		choice := c.suggestions[clamp(c.suggestIndex, 0, len(c.suggestions)-1)]
-		return m.theme.muted.Render(fmt.Sprintf("  ↳ %s  (%d/%d) · ↑↓ enter",
-			truncate(choice, max(m.width-24, 8)), c.suggestIndex+1, len(c.suggestions)))
 	case c.inputErr != nil:
 		return m.theme.danger.Render(truncate("  ! "+c.inputErr.Error(), m.width-6))
 	case len(c.artifacts) > 0:
@@ -1262,7 +1722,7 @@ func (m App) inputStatus(c *compose) string {
 		if len(c.artifacts) == 1 {
 			noun = "file"
 		}
-		return m.theme.success.Render(fmt.Sprintf("  %d %s · %s", len(c.artifacts), noun, humanBytes(size)))
+		return m.theme.success.Render(fmt.Sprintf("  ✓ %d %s · %s", len(c.artifacts), noun, humanBytes(size)))
 	case c.input == "":
 		return m.theme.muted.Render("  type a path, glob (~/Pictures/*.png), or @alias")
 	default:

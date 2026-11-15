@@ -67,6 +67,10 @@ Every screen provides:
 - `view(width, height)`
 - one `esc` behavior (back, cancel, or close overlay)
 
+The footer shows at most three actions for the active context; `?`/`F1` opens
+the full keymap. Compose is a three-phase wizard (`Input → Output → Steps`) and
+has one footer context per phase. See `docs/compose-flow.md`.
+
 Overlays are separate from screens: palette, prompt, help, logs, quit
 confirmation, and editor save confirmation. The editor's open-file prompt lists
 cwd entries immediately, supports `@alias/` browsing, and shows a live
@@ -125,11 +129,11 @@ already independent because they are testable without a terminal.
 
 ```
 Home
-├─ n  New job → Operations → Compose → Jobs
+├─ n  New job → Operations → Compose (Input → Output → Steps) → Jobs
 ├─ e  Open editor → Editor
 ├─ t  Themes → Theme picker
 ├─ j  Jobs → Job detail
-├─ s  Settings → Output / Theme / Jobs / Config
+├─ s  Settings → Output / Theme / Jobs / Discard / Config
 ├─ ctrl+p  Palette
 │           ├─ > Settings
 │           ├─ > Engines
@@ -148,12 +152,12 @@ normally, and `ctrl+c` is the universal quit/interrupt.
 
 Home answers three questions in one screen:
 
-1. What can I do? Primary actions: `n` new job, `a` AI detector, `e` editor, `j` jobs, `s` settings, `t` theme, `?` help.
+1. What can I do? A grouped single-column action menu: `n` new job, `a` AI detector, `e` editor / `j` jobs, `v` statistics / `s` settings, `?` help. `ctrl+p` palette, `t` theme, and `q` quit live in the footer, not the body, so shortcuts are not repeated.
 2. What happened recently? Recent jobs and saved pipelines.
 3. Is the environment healthy? Engine marks, output path, and a path to `wb doctor`.
 
 The hero is one centered ANSI Shadow `WORKBENCH` wordmark with a centered action block. It fits an 80-column terminal (77 columns) and is centered on both axes when Home is the active screen. Wide
-terminals add a lower Recent | Environment split; narrow terminals stack it.
+terminals add a lower Recent activity | Environment split; narrow terminals stack it.
 No max-width cap is used for Jobs, Compose, or Editor; list-only screens are
 centered at a readable width instead of stretching metadata across 200 columns.
 
@@ -161,12 +165,14 @@ No progress bars, no sparkline, no duplicate job table. Those belong on Jobs.
 
 ## 6. Chrome and identity
 
-- Wide mark: ANSI Shadow `WORKBENCH` in `logo.go`, with a larger two-row, three-block dither mark centered above it on Home and a blank line between them; the header uses the compact single-row mark. `assets/logo.svg` is the matching mark.
+- Wide mark: ANSI Shadow `WORKBENCH` in `logo.go`, with the larger two-row, three-block dither mark centered above it on Home and a blank line between them. Compact Home keeps the mark above a plain wordmark. The header uses the compact single-row mark. `assets/logo.svg` is the matching mark.
 - Header: dither row of three accent shades + wordmark + breadcrumb on the left;
   active-job percentage on the right; a single rule below.
 - Footer: one rule, context keys on the left, toast on the right; key tokens are accented.
-- Progress bars are dot-matrix (`⣿` completed, `⣀` track), not solid blocks;
-  the fill color changes with status (accent, green, red, muted).
+- Jobs list uses a running-only solid block bar (`█` completed, `░` track);
+  finished rows show status words instead. Job detail uses the same block bar,
+  with an indeterminate bar for aggregate/direct stages. The AI detector keeps
+  its dot-matrix (`⣿`/`⣀`) score meter.
 - Color is semantic, never ad-hoc: `accent`, `success`, `warning`, `danger`,
   `muted`, `border`, `gutter`, `currentLine`.
 

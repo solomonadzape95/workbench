@@ -61,6 +61,8 @@ func (m App) handleOnboardingKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if o.cursor > 0 {
 			o.packs[o.cursor].enabled = !o.packs[o.cursor].enabled
 		}
+	case "i":
+		return m.openEngineInstaller(screenOnboarding, true)
 	case "enter", "f", "ctrl+s":
 		return m.finishOnboarding()
 	case "esc":
@@ -221,6 +223,6 @@ func (m App) onboardingView(height int) string {
 		b.WriteString("\n")
 	}
 	b.WriteString("\n")
-	b.WriteString(m.theme.muted.Render("j/k move · space toggle · enter finish · esc skip"))
+	b.WriteString(m.theme.muted.Render("j/k move · space toggle · i install engines · enter finish · esc skip"))
 	return m.panel("Setup", b.String(), width, height, true)
 }

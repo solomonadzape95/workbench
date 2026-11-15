@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -55,6 +54,9 @@ func ResolveOptions(raw string, aliases []config.Alias, opts Options) ([]core.Ar
 		paths = append(paths, matches...)
 	}
 
+	// Keep the order of the patterns the user typed. Each pattern already
+	// returns its matches in lexical order, so directory/glob expansion stays
+	// predictable while explicit lists keep their selection order.
 	paths = dedupe(paths)
 	paths, err := filterPaths(paths, opts)
 	if err != nil {
@@ -69,7 +71,6 @@ func ResolveOptions(raw string, aliases []config.Alias, opts Options) ([]core.Ar
 	if len(paths) > maxInputs {
 		paths = paths[:maxInputs]
 	}
-	sort.Strings(paths)
 
 	out := make([]core.Artifact, 0, len(paths))
 	for _, path := range paths {

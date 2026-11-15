@@ -57,6 +57,10 @@ No `j`/`k`; typing `q` quits instead of filtering; typing `?` opens help.
 
 ### Compose, chain view (`compose.go`, `app.go`)
 
+> Superseded for the current compose flow: `Input → Output → Steps` is now a
+> three-phase wizard. See `docs/compose-flow.md`. The table below records the
+> pre-wizard audit.
+
 | Key | Action |
 |---|---|
 | `ctrl+right`, `alt+right`, `ctrl+l` | Focus next pane |

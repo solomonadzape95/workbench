@@ -111,14 +111,14 @@ var jobPresets = []jobPreset{
 		name:        "Vocal stem",
 		description: "Isolate the vocal from a song with Demucs when available, or center isolation",
 		steps: []presetStep{
-			{op: "audio.extract_vocals", params: core.Values{"method": "auto", "model": "htdemucs", "format": "wav", "bitrate": "192k"}},
+			{op: "audio.extract_vocals", params: core.Values{"method": "auto", "model": "htdemucs", "format": "mp3", "bitrate": "192k"}},
 		},
 	},
 	{
-		name:        "Instrumental",
-		description: "Remove the vocal and keep the instrumental mix",
+		name:        "Remove vocals (instrumental)",
+		description: "Strip the vocal and keep the instrumental mix",
 		steps: []presetStep{
-			{op: "audio.extract_instrumental", params: core.Values{"method": "auto", "model": "htdemucs", "format": "wav", "bitrate": "192k"}},
+			{op: "audio.extract_instrumental", params: core.Values{"method": "auto", "model": "htdemucs", "format": "mp3", "bitrate": "192k"}},
 		},
 	},
 	{

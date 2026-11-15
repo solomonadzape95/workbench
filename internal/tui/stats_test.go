@@ -17,7 +17,7 @@ func TestStatsViewShowsSavedBytes(t *testing.T) {
 		{ID: "2", Name: "Convert", Status: core.StatusDone, QueuedAt: time.Now(), Metrics: core.Metrics{BytesIn: 500, BytesOut: 700}},
 	}
 	view := m.statsView(24)
-	for _, want := range []string{"Statistics", "SAVED BY PIPELINE", "Resize", "Convert", "net saved"} {
+	for _, want := range []string{"Statistics", "BY JOB", "Resize", "Convert", "RUNS", "DATA IN", "SPACE SAVED"} {
 		if !strings.Contains(view, want) {
 			t.Errorf("stats view missing %q:\n%s", want, view)
 		}

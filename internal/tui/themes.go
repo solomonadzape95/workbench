@@ -164,10 +164,7 @@ func (m App) themePickerView(height int) string {
 
 	for i, choice := range p.items {
 		row := m.themeRow(choice, i == p.cursor, contentWidth)
-		if i == p.cursor {
-			row = m.selectedRow(row, contentWidth)
-		}
-		b.WriteString(row)
+		b.WriteString(m.listRow(row, contentWidth, i == p.cursor))
 		b.WriteString("\n")
 	}
 	if len(p.items) == 0 {
@@ -194,13 +191,11 @@ func (m App) themePickerView(height int) string {
 }
 
 func (m App) themeRow(choice themeChoice, selected bool, width int) string {
-	marker := "  "
 	style := m.theme.muted
 	if selected {
-		marker = m.theme.accent.Render("▸ ")
 		style = m.theme.accent
 	}
-	return marker + style.Render(padRight(truncate(choice.name, max(width-4, 10)), max(width-4, 10)))
+	return style.Render(padRight(truncate(choice.name, max(width-4, 10)), max(width-4, 10)))
 }
 
 func (m App) themePreviewCompact(t theme, width int) string {

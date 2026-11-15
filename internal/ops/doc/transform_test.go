@@ -20,7 +20,7 @@ type fakeTextGenerator struct {
 	calls []string
 }
 
-func (f *fakeTextGenerator) FreeModels(context.Context) ([]opencode.ModelRef, error) {
+func (f *fakeTextGenerator) Models(context.Context) ([]opencode.ModelRef, error) {
 	return f.models, nil
 }
 
@@ -162,5 +162,34 @@ func TestTranslateRejectsNonTextInput(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("image passed validation")
+	}
+}
+
+func TestExplicitProviderModelWorksWithoutFreeModels(t *testing.T) {
+	dir := t.TempDir()
+	input := transformInput(t, dir, "note.md", "Hello world.\n")
+	gen := &fakeTextGenerator{
+		fn: func(prompt string) (string, error) {
+			return "Hola mundo.\n", nil
+		},
+	}
+	out := t.TempDir()
+	op := Translate{Client: gen}
+	req := core.Request{
+		Items: []core.Artifact{input},
+		Params: core.Values{
+			"language": "Spanish", "chunk_words": 200, "workers": 1,
+			"model": "anthropic/claude-sonnet-5-5",
+		},
+		Target: core.Target{Dir: out},
+	}
+	if err := op.Validate(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := op.Run(context.Background(), req, nopReporter{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(gen.calls) == 0 {
+		t.Fatal("the explicit model was never called")
 	}
 }

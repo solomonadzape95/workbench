@@ -30,7 +30,7 @@ type fakeGenerator struct {
 	calls []string
 }
 
-func (f *fakeGenerator) FreeModels(context.Context) ([]opencode.ModelRef, error) {
+func (f *fakeGenerator) Models(context.Context) ([]opencode.ModelRef, error) {
 	return f.models, nil
 }
 
@@ -513,5 +513,51 @@ func TestPolishFormalKeepsContractions(t *testing.T) {
 	got = Polish("It is not a problem. The results are not final.")
 	if !strings.Contains(got, "isn't") || !strings.Contains(got, "aren't") {
 		t.Errorf("casual polish did not add contractions: %q", got)
+	}
+}
+
+func TestExplicitProviderModelWorksWithoutFreeModels(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "notes.md")
+	if err := os.WriteFile(src, []byte("In conclusion, utilize this crucial test."), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	art, err := core.Probe(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outDir := filepath.Join(dir, "out")
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gen := &fakeGenerator{}
+	op := &Humanize{Client: gen}
+	req := core.Request{
+		Items:  []core.Artifact{art},
+		Params: core.Values{"style": "professional", "model": "anthropic/claude-sonnet-5-5", "chunk_words": 900, "workers": 1},
+		Target: core.Target{Dir: outDir},
+	}
+	if err := op.Validate(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := op.Run(context.Background(), req, nopReporter{}); err != nil {
+		t.Fatal(err)
+	}
+	if gen.count() == 0 {
+		t.Fatal("the explicit model was never called")
+	}
+	if gen.calls[0] != "anthropic/claude-sonnet-5-5" {
+		t.Fatalf("called %q", gen.calls[0])
+	}
+}
+
+func TestInvalidProviderModelIsRejected(t *testing.T) {
+	op := &Humanize{Client: &fakeGenerator{}}
+	req := core.Request{
+		Items:  []core.Artifact{{Path: "x.md", Kind: core.Document, Format: "md"}},
+		Params: core.Values{"style": "professional", "model": "not-a-provider-model"},
+	}
+	if err := op.Validate(context.Background(), req); err == nil {
+		t.Fatal("Validate accepted a model without provider/")
 	}
 }

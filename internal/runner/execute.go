@@ -232,7 +232,7 @@ func (r *Runner) runDirectItem(
 	req := core.Request{
 		Items:  []core.Artifact{it.current},
 		Params: params,
-		Target: job.target,
+		Target: itemTarget(job.target, it),
 	}
 	if err := op.Validate(ctx, req); err != nil {
 		return r.failItem(job, it, err)
@@ -501,20 +501,38 @@ func carrySuggestedName(prev, out core.Artifact) string {
 	return stem + "." + core.ExtFor(out.Format, prev)
 }
 
+// itemTarget returns the target directory for one item. BesideInput is
+// resolved here so direct operations (move, rename, extract, trash) write in
+// the source folder without the rest of the runner knowing about the mode.
+func itemTarget(target core.Target, it *item) core.Target {
+	path := it.input.Path
+	if target.BesideInput && path != "" &&
+		!strings.HasPrefix(path, "http://") && !strings.HasPrefix(path, "https://") {
+		target.Dir = filepath.Dir(path)
+	}
+	target.BesideInput = false
+	return target
+}
+
 func (r *Runner) commit(job *Job, it *item, art core.Artifact, spec core.Spec) (core.Artifact, error) {
 	r.commitMu.Lock()
 	defer r.commitMu.Unlock()
 
-	if err := os.MkdirAll(job.target.Dir, 0o755); err != nil {
-		return core.Artifact{}, core.Wrap(core.CodeOutput, spec.ID, job.target.Dir, err,
+	target := itemTarget(job.target, it)
+	if target.Dir == "" {
+		return core.Artifact{}, core.NewError(core.CodeOutput, spec.ID, it.input.Path,
+			"cannot resolve the input folder", "choose an explicit output folder")
+	}
+	if err := os.MkdirAll(target.Dir, 0o755); err != nil {
+		return core.Artifact{}, core.Wrap(core.CodeOutput, spec.ID, target.Dir, err,
 			"check permissions on the output directory")
 	}
 
-	proposed := job.target.OutputPath(it.input, art.Format, spec.ID, it.index, time.Now())
+	proposed := target.OutputPath(it.input, art.Format, spec.ID, it.index, time.Now())
 	if art.SuggestedName != "" {
-		proposed = filepath.Join(job.target.Dir, core.SanitizeFilename(art.SuggestedName))
+		proposed = filepath.Join(target.Dir, core.SanitizeFilename(art.SuggestedName))
 	}
-	final, err := core.UniquePath(proposed, job.target.Collision)
+	final, err := core.UniquePath(proposed, target.Collision)
 	if err != nil {
 		return core.Artifact{}, err
 	}

@@ -65,6 +65,13 @@ type Options struct {
 	Runner     *runner.Runner
 	FirstRun   bool
 	Warnings   []string
+
+	// StartInstaller opens the engine installer immediately. It is used by
+	// `wb engines install`; ExitAfterInstaller closes the TUI when the picker
+	// is dismissed.
+	StartInstaller     bool
+	InstallerAll       bool
+	ExitAfterInstaller bool
 }
 
 // App is the root Bubble Tea model.
@@ -106,20 +113,24 @@ type App struct {
 	lastOutput    string
 	restoreDraft  bool
 
-	palette        *palette
-	prompt         *prompt
-	preview        *previewState
-	review         *reviewState
-	logView        *logState
-	onboarding     *onboarding
-	themePicker    *themePicker
-	editor         *editorState
-	editorReturn   screen
-	settingsCursor int
-	settingsReturn screen
-	detector       *detectorState
-	detectorReport *detectorReportState
-	confirm        *confirmState
+	palette            *palette
+	prompt             *prompt
+	picker             *filePicker
+	preview            *previewState
+	review             *reviewState
+	logView            *logState
+	onboarding         *onboarding
+	themePicker        *themePicker
+	installer          *engineInstaller
+	exitAfterInstaller bool
+	editor             *editorState
+	editorReturn       screen
+	settingsCursor     int
+	settingsReturn     screen
+	statsScroll        int
+	detector           *detectorState
+	detectorReport     *detectorReportState
+	confirm            *confirmState
 }
 
 type previewState struct {
@@ -142,10 +153,12 @@ const (
 )
 
 type confirmState struct {
-	kind    confirmKind
-	title   string
-	body    string
-	subject string
+	kind       confirmKind
+	title      string
+	body       string
+	subject    string
+	showToggle bool
+	dontAsk    bool
 }
 
 func New(opts Options) App {
@@ -165,7 +178,7 @@ func New(opts Options) App {
 	if themeErr != nil {
 		app.notice = themeErr.Error()
 	}
-	if opts.FirstRun {
+	if opts.FirstRun && !opts.StartInstaller {
 		app.screen = screenOnboarding
 		app.onboarding = newOnboarding(opts.Config)
 	}
@@ -217,12 +230,22 @@ func New(opts Options) App {
 		}
 		c.savedName = opts.Saved.Draft.SavedName
 		c.selected = clamp(opts.Saved.Draft.Selected, 0, max(len(c.steps)-1, 0))
+		c.inPlace = opts.Saved.Draft.InPlace && !c.isURLFlow()
+		c.focus = composeFocus(clamp(opts.Saved.Draft.Focus, 0, 2))
+		if c.focus == focusOutput && c.inPlace {
+			c.outputFocus = 1
+		}
 		c.dirty = true
 		app.compose = c
 		app.screen = screenCompose
 		app.restoreDraft = true
 		app.toast = "restored unsaved pipeline"
 		app.toastLevel = core.LevelInfo
+	}
+	if opts.StartInstaller {
+		app.screen = screenHome
+		app.installer = app.newEngineInstaller(screenHome, opts.InstallerAll)
+		app.exitAfterInstaller = opts.ExitAfterInstaller
 	}
 	return app
 }
@@ -327,6 +350,12 @@ func (m App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.opts.Paths.CacheDir != "" {
 			_ = engines.SaveCache(filepath.Join(m.opts.Paths.CacheDir, "engines.json"), m.engines)
 		}
+		if m.installer != nil {
+			m.installer.refresh(m.engines)
+		}
+
+	case engineInstallDoneMsg:
+		return m.handleEngineInstallDone(msg)
 
 	case resolveTickMsg:
 		if m.screen == screenCompose && m.compose != nil && msg.version == m.compose.inputVersion {
@@ -463,6 +492,9 @@ func (m App) insertText(text string) (tea.Model, tea.Cmd) {
 	if c.focus != focusInput && c.focus != focusOutput {
 		return m, nil
 	}
+	if c.focus == focusOutput && c.outputFocus == 1 {
+		return m, nil
+	}
 	if c.focus == focusInput {
 		c.setText(c.text() + multiValue(text))
 		return m, c.afterTextChange(m.opts.Config)
@@ -490,6 +522,9 @@ func (m App) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 
 	if key == "ctrl+c" {
+		if m.installer != nil {
+			return m.handleInstallerKey(msg)
+		}
 		if m.screen == screenEditor && m.editor != nil {
 			if m.editor.buf.Dirty() {
 				m.editor.pendingClose = true
@@ -506,6 +541,12 @@ func (m App) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m.requestQuit()
+	}
+	if m.picker != nil {
+		return m.handlePickerKey(msg)
+	}
+	if m.installer != nil {
+		return m.handleInstallerKey(msg)
 	}
 	if key == "ctrl+v" {
 		if m.pasteTarget() {
@@ -629,11 +670,24 @@ func (m App) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 				m.compose.cancelStep()
 				return m, nil
 			}
+			// Esc backs out one phase before it offers to throw the job away,
+			// matching the stepper mental model.
+			if m.compose != nil && m.compose.focus != focusInput {
+				m.compose.retreatPhase()
+				return m, nil
+			}
 			if m.composeHasWork() {
+				if !m.opts.Config.General.ConfirmDiscard {
+					m.compose = nil
+					m.screen = screenOperations
+					m.saveState()
+					return m, nil
+				}
 				m.confirm = &confirmState{
-					kind:  confirmDiscardCompose,
-					title: "Discard this pipeline?",
-					body:  "The steps and input will not be saved.",
+					kind:       confirmDiscardCompose,
+					title:      "Discard this pipeline?",
+					body:       "The steps and input will not be saved.",
+					showToggle: true,
 				}
 				return m, nil
 			}
@@ -680,6 +734,7 @@ func (m App) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.ensureJobSelection()
 			m.screen = screenJobs
 		case "v":
+			m.statsScroll = 0
 			m.screen = screenStats
 		case "a":
 			if op, ok := m.opts.Operations.Get("doc.detect_ai"); ok {
@@ -727,6 +782,11 @@ func (m App) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		c := m.compose
 		if c == nil {
 			m.screen = screenOperations
+			return m, nil
+		}
+
+		if c.editing < 0 && c.focus == focusInput && !c.isURLFlow() && key == "ctrl+f" {
+			m.picker = m.newFilePicker(c)
 			return m, nil
 		}
 
@@ -988,11 +1048,29 @@ func (m App) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		case "/":
 			m.engineFiltering = true
 			m.engineQuery = ""
+		case "i":
+			return m.openEngineInstaller(screenEngines, false)
 		case "r":
 			m.probing = true
 			if m.opts.Registry != nil {
 				return m, probeEngines(m.opts.Registry)
 			}
+		}
+
+	case screenStats:
+		switch key {
+		case "j", "down", "ctrl+j":
+			m.statsScroll++
+		case "k", "up", "ctrl+k":
+			m.statsScroll = max(m.statsScroll-1, 0)
+		case "pgdown", "ctrl+d":
+			m.statsScroll += 8
+		case "pgup", "ctrl+u":
+			m.statsScroll = max(m.statsScroll-8, 0)
+		case "g", "home":
+			m.statsScroll = 0
+		case "G", "end":
+			m.statsScroll = 1 << 20
 		}
 	}
 
@@ -1010,7 +1088,10 @@ func (m App) textEntryFocused() bool {
 		}
 		return fieldAcceptsText(c.fields[c.fieldFocus])
 	}
-	return c.focus == focusInput || c.focus == focusOutput
+	if c.focus == focusOutput {
+		return c.outputFocus == 0
+	}
+	return c.focus == focusInput
 }
 
 func (m App) togglePalette() (tea.Model, tea.Cmd) {
@@ -1127,11 +1208,12 @@ func (m App) requestQuit() (tea.Model, tea.Cmd) {
 		m.confirmQuit = true
 		return m, nil
 	}
-	if m.composeHasWork() {
+	if m.composeHasWork() && m.opts.Config.General.ConfirmDiscard {
 		m.confirm = &confirmState{
-			kind:  confirmQuitApp,
-			title: "Quit and discard this pipeline?",
-			body:  "The current steps and input are not saved.",
+			kind:       confirmQuitApp,
+			title:      "Quit and discard this pipeline?",
+			body:       "The current steps and input are not saved.",
+			showToggle: true,
 		}
 		return m, nil
 	}
@@ -1142,6 +1224,10 @@ func (m App) requestQuit() (tea.Model, tea.Cmd) {
 func (m App) handleConfirmKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	c := m.confirm
 	if c == nil {
+		return m, nil
+	}
+	if (msg.String() == " " || msg.String() == "space") && c.showToggle {
+		c.dontAsk = !c.dontAsk
 		return m, nil
 	}
 	switch msg.String() {
@@ -1194,16 +1280,35 @@ func (m App) handleConfirmKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.toast = fmt.Sprintf("undid %d output(s), restored %d overwritten file(s)", result.Files, result.Restored)
 		m.toastLevel = core.LevelInfo
 	case confirmDiscardCompose:
+		if c.dontAsk {
+			m = m.disableDiscardConfirm()
+		}
 		m.confirm = nil
 		m.compose = nil
 		m.screen = screenOperations
 		m.saveState()
 	case confirmQuitApp:
+		if c.dontAsk {
+			m = m.disableDiscardConfirm()
+		}
 		m.confirm = nil
 		m.saveState()
 		return m, tea.Quit
 	}
 	return m, nil
+}
+
+func (m App) disableDiscardConfirm() App {
+	cfg := m.opts.Config
+	cfg.General.ConfirmDiscard = false
+	if path := m.opts.Paths.ConfigFile; path != "" {
+		if err := config.Save(path, cfg); err != nil {
+			m.toast = "could not save config: " + err.Error()
+			m.toastLevel = core.LevelError
+		}
+	}
+	m.opts.Config = cfg
+	return m
 }
 
 func (m App) confirmStateView() string {
@@ -1215,10 +1320,23 @@ func (m App) confirmStateView() string {
 		m.theme.warning.Render(c.title),
 		"",
 		m.theme.muted.Render(c.body),
+	}
+	if c.showToggle {
+		check := "[ ]"
+		if c.dontAsk {
+			check = m.theme.success.Render("[x]")
+		}
+		lines = append(lines,
+			"",
+			check+" "+m.theme.muted.Render("Don't ask again"),
+			m.theme.muted.Render("space toggles"),
+		)
+	}
+	lines = append(lines,
 		"",
 		m.theme.muted.Render("y  confirm"),
 		m.theme.muted.Render("esc  cancel"),
-	}
+	)
 	return m.theme.card.Render(strings.Join(lines, "\n"))
 }
 
@@ -1514,6 +1632,8 @@ func (m App) saveState() {
 				Output:    c.output,
 				SavedName: c.savedName,
 				Selected:  c.selected,
+				Focus:     int(c.focus),
+				InPlace:   c.inPlace,
 			}
 		}
 	}

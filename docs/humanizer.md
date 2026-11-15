@@ -8,8 +8,8 @@ technical terms. It uses the models you already have in
 ## Requirements
 
 - OpenCode installed and signed in (`opencode --version`).
-- At least one free text model enabled. `auto` tries the free models in the
-  OpenCode catalog, including the NVIDIA and OpenCode free tiers.
+- At least one text model available. That can be a free model (NVIDIA/OpenCode
+  tiers) or a provider you connected yourself with `/connect` and `/models`.
 - OpenCode normally runs a background service. Workbench starts it on the first
   humanize run if it is not already running.
 
@@ -28,7 +28,7 @@ Options:
 | Option | Meaning |
 |---|---|
 | Style | `professional` (default), `casual`, `academic`, `blog`, `social`, `narrative` |
-| Model | `auto`, or a specific free model |
+| Model | `auto`, or `provider/model` from a model you connected in OpenCode |
 | Voice sample | Optional text file with a sample of your writing |
 | Chunk size | Words per model call; default 900 |
 | Workers | Chunks rewritten in parallel; default 3 |
@@ -84,12 +84,14 @@ of writing an unchanged file.
 ## Models and fallback
 
 `auto` starts with the free models that have been reliable for rewriting, then
-walks the rest of the free catalog. A model that reports a free-tier limit, a
-region block, a privacy restriction, or an auth failure is marked unavailable
-for the rest of the run. Timeouts and transient failures try the next model.
+walks the rest of the available catalog. A model that reports a limit, a region
+block, a privacy restriction, or an auth failure is marked unavailable for the
+rest of the run. Timeouts and transient failures try the next model.
 
 The first successful model is reused for later chunks. You can pin a model in
-the step editor if you prefer, but `auto` is the safest choice on a free tier.
+the step editor with `provider/model`; an explicit model is tried first even if
+it is paid. With `allow_paid = true`, `auto` also includes paid models from
+connected providers, after the curated free models.
 
 Free tiers are rate-limited. A large document can take a while, and a model that
 worked yesterday may be unavailable today. The fallback chain is there for that.
@@ -129,6 +131,10 @@ records the style, model, chunk count, and how many chunks were left unchanged.
 
 ## Configuration
 
+Provider keys belong to OpenCode, not Workbench. Connect them in the OpenCode
+TUI with `/connect`, then check the model IDs with `opencode models`. Workbench
+never receives or stores those keys.
+
 Auto-discovery reads the URL from `opencode service status` and the password
 from OpenCode's `service.json`. To override:
 
@@ -136,10 +142,40 @@ from OpenCode's `service.json`. To override:
 [opencode]
 url      = "http://127.0.0.1:4096"
 password = "..."
+allow_paid = false
+allowed_providers = []
 ```
 
 Environment variables `OPENCODE_SERVER_URL` and `OPENCODE_SERVICE_PASSWORD` also
 work. The password is the OpenCode service password, not a provider API key.
+
+### Bring your own key
+
+The `Model` field accepts `provider/model`:
+
+```text
+anthropic/claude-sonnet-5-5
+openai/gpt-6.1-sol
+openrouter/anthropic/claude-sonnet-5.5
+```
+
+An explicit model is tried first, even if it is paid; if it fails, the normal
+fallback chain runs (free models, plus paid models when `allow_paid = true`).
+This means you can use a key you connected in OpenCode without changing
+Workbench's config.
+
+`allow_paid` only controls `auto`:
+
+- `false` (default) — `auto` considers free models only; explicit paid models
+  still work.
+- `true` — `auto` also considers paid models from connected providers, after
+  the curated free models.
+
+`allowed_providers` optionally narrows discovery for both free and paid models.
+An explicit `provider/model` bypasses it. Leave it empty to allow every provider
+OpenCode exposes.
+
+Changing these values requires a restart.
 
 ## Detector notes
 
@@ -160,13 +196,13 @@ a result screen with a one-key Humanize action. See
 
 ## Troubleshooting
 
-- **Engine missing / no free models** — install OpenCode, sign in, and run
+- **Engine missing / no models** — install OpenCode, connect a provider, and run
   `opencode models` to see what is enabled.
 - **Service is not running** — run `opencode service start`. Workbench also tries
   this on the first run.
 - **Free usage limit reached** — the free model is throttled. `auto` moves to the
-  next free model. A pinned model is tried first and then falls back to the
-  free chain.
+  next model. A pinned model is tried first and then falls back to the free
+  chain.
 - **Model not available in your country** — that model is region-blocked. Use
   `auto` or pick another free model.
 - **Privacy / trains on request data** — OpenCode can require a workspace

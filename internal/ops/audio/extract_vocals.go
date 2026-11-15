@@ -38,7 +38,7 @@ var extractInstrumentalSpec = func() core.Spec {
 	spec := extractVocalsSpec
 	spec.ID = "audio.extract_instrumental"
 	spec.Title = "Extract instrumental"
-	spec.Summary = "Remove the vocal and keep the instrumental mix"
+	spec.Summary = "Remove vocals and keep the instrumental mix"
 	return spec
 }()
 
@@ -62,7 +62,7 @@ func stemParams() []core.ParamSpec {
 			},
 			Advanced: true,
 		},
-		{Key: "format", Label: "Format", Type: core.ParamEnum, Default: "wav", Options: formatOptions()},
+		{Key: "format", Label: "Format", Type: core.ParamEnum, Default: "mp3", Options: formatOptions()},
 		{Key: "bitrate", Label: "Bitrate", Type: core.ParamEnum, Default: "192k", Options: bitrateOptions(), Advanced: true},
 	}
 }
@@ -133,7 +133,7 @@ func runStem(
 	}
 	format := req.Params.String("format")
 	if format == "" {
-		format = "wav"
+		format = "mp3"
 	}
 	bitrate := req.Params.String("bitrate")
 	encoder, lossy, ok := media.AudioEncoder(format)

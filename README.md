@@ -22,7 +22,7 @@
   <a href="./SPEC.md">Product spec</a>
 </p>
 
-**Status:** v0.1.1 — 65 operations across image, audio, video, document, and file.
+**Status:** v0.1.2 — 65 operations across image, audio, video, document, and file.
 One binary, optional engines, and four ways to drive it: the TUI, `wb run`, a
 local HTTP API, and an MCP server.
 
@@ -78,6 +78,7 @@ go run ./cmd/workbench
 ./bin/wb watch --pipeline my-chain --dir ~/Inbox --output ~/Out
 ./bin/wb ops        # list operations; --json for machines
 ./bin/wb engines    # probe engines; --json for machines
+./bin/wb engines install  # pick and install missing engines (--all to preselect)
 ./bin/wb pipeline   # list, export, or import saved pipelines
 ./bin/wb serve      # local agent API on 127.0.0.1:8765
 ./bin/wb mcp        # Model Context Protocol server on stdio
@@ -106,14 +107,13 @@ From the dashboard:
 
 1. `ctrl+p` opens the palette (or `n` opens the operation picker).
 2. Pick an operation to start a chain. `Download video` switches the input to a URL field; add more steps with `n` on the steps list.
-3. `tab` / `shift+tab` moves focus between input, output, and steps; `ctrl+→`/`alt+→` still work when you are inside a text field. `enter` edits the selected step. In the input and output fields, `tab` completes the selected path/alias suggestion.
-   Type an input path, glob, or alias (`~/Pictures/*.png`, `@shots`, `@last`,
-   `@clipboard`). For `Download video`, type one or more `http(s)` URLs instead.
-4. `ctrl+r` runs the chain. Progress and per-item results appear on the jobs screen.
-5. `ctrl+s` saves the chain as a named pipeline; load it later from `ctrl+p` → `#`.
-6. `x` cancels the selected job after a confirmation; cancelled jobs leave no partial output.
-7. `e` opens the built-in editor for a file; `s` opens Settings (output folder, theme, max jobs); `?` (or `F1`) opens contextual help. From Aliases, `e` opens `config.toml` in the same editor.
-8. Jobs persist. `l` opens a log, `enter` opens an AI report when one exists (otherwise the log), `r` reruns, `R` retries failed items, and `o` reveals the output folder. `wb history list` shows the same history from the shell.
+3. Step 1 is **Input**. Type a path, glob, or alias (`~/Pictures/*.png`, `@shots`, `@last`, `@clipboard`); for `Download video`, type one or more `http(s)` URLs. `tab` completes the highlighted match. `ctrl+f` opens a multi-select picker (`space` picks, `enter` opens a folder or picks a file, `ctrl+s` uses the selection); picked files keep their selection order. Once the input resolves, `enter` (or another `tab`) continues to Output.
+4. Step 2 is **Output**. `tab` moves to the `Save beside input files` checkbox; `space` toggles it. Otherwise the folder field is the destination. `enter` continues to Steps.
+5. Step 3 is **Steps**. `enter` edits the selected step, `n` adds one, `d` removes one, and `J`/`K` reorder. `ctrl+r` runs the chain; progress and per-item results appear on the jobs screen. `ctrl+s` saves the chain as a named pipeline; load it later from `ctrl+p` → `#`.
+6. `esc` backs out one phase (Input → Output → Steps) without losing the draft. The stepper at the top of the screen always shows where you are.
+7. `x` cancels the selected job after a confirmation; cancelled jobs leave no partial output.
+8. `e` opens the built-in editor for a file; `s` opens Settings (output folder, theme, max jobs, discard confirmation); `?` (or `F1`) opens contextual help. From Aliases, `e` opens `config.toml` in the same editor.
+9. Jobs persist. `l` opens a log, `enter` opens an AI report when one exists (otherwise the log), `r` reruns, `R` retries failed items, and `o` reveals the output folder. `wb history list` shows the same history from the shell.
 
 ## Demo
 
@@ -248,13 +248,14 @@ wb run --pipeline web-image --input "@screenshots" --output ~/Out
   atomic save, and config editing; no external `$EDITOR` required.
 - Themes — eight built-in presets (opencode, tokyonight, catppuccin, gruvbox,
   nord, monokai, vscode, rosepine) with live previews and config persistence.
-- Settings — edit output folder and max jobs in place, choose a theme, browse
-  aliases, or open `config.toml` in the built-in editor.
+- Settings — edit output folder and max jobs in place, choose a theme, toggle
+  discard confirmation, browse aliases, or open `config.toml` in the built-in
+  editor.
 - Path completion — typing in the input field suggests aliases and matching
   files/directories; use ↑/↓ then enter to insert.
 - Step editor — enum arrows, numeric `←/→` adjustment, explicit field hints,
   and a clear Format/Quality summary in the chain.
-- Home — centered dither mark above the ANSI Shadow wordmark, primary actions, recent jobs, and environment details on wide terminals.
+- Home — centered dither mark above the ANSI Shadow wordmark, a grouped action menu (including Statistics), recent jobs, and environment details on wide terminals.
 - Command palette — literal-first search with fuzzy abbreviations, `>` commands,
   `@` aliases, `#` pipelines, disabled-engine and incompatible-step hints; the
   card shortens to fit the terminal and scrolls with `↑/↓`.
@@ -266,11 +267,20 @@ wb run --pipeline web-image --input "@screenshots" --output ~/Out
   `@desktop`, `@screenshots`. Edit them from Settings → Aliases or config.toml.
 - Job runner — concurrent jobs, per-engine limits, per-item and aggregate
   progress, temp workspaces, atomic commits, collision suffixing, panic
-  containment, and process-group cancellation for ffmpeg.
+  containment, and process-group cancellation for ffmpeg. Per-item operations
+  are batches (5 WAVs → 5 MP3s); aggregate operations combine inputs (3 PDFs →
+  1 merged PDF). The operation picker and compose screen label both modes.
+- Jobs list — fixed status columns, running-only progress, relative age, and
+  aggregate `3 → 1` indicators.
+- Statistics — KPI row, aligned by-job table, 7-day activity chart, status
+  breakdown, and scrolling on short terminals.
 - Previews — truecolor half-block images, text/PDF text, and hex fallbacks
   (`ctrl+o` from compose or jobs; audio/video metadata previews come with the
   next polish pass).
-- Job detail — `l` logs, `enter` report or log, `R` retry failed, `r` re-run, `o` reveal output, `c`/`y` copy error; size-saved badge and progress sparkline.
+- Job detail — aligned summary, running progress with current stage, step
+  durations, input/output tables, aggregate output paths, and a full error
+  block; `l` logs, `enter` report or log, `R` retry failed, `r` re-run,
+  `o` reveal output, `c`/`y` copy error.
 - Job logs — `l` opens a timestamped log overlay, `/` searches, `n/N` jumps between matches, `c`/`y` copies, and every job persists a log under `~/.local/share/workbench/logs/`.
 - Job history — `~/.local/share/workbench/history.jsonl`, loaded on startup, rotated at 5 MB, exposed by `wb history list|clear` and the local API. Rerun and retry work from history.
 - MCP — `wb mcp` exposes every operation as a tool for agents over stdio.
@@ -278,6 +288,10 @@ wb run --pipeline web-image --input "@screenshots" --output ~/Out
 - Session restore — `state.json` restores the selected job, last output, and an unsaved Compose draft after a restart.
 - Onboarding — engine scan and starter packs on first launch; the Engines
   screen (`ctrl+p` → `> Engines`) re-scans on demand.
+- Engine installer — `wb engines install`, or `i` in Setup/Engines, lists missing
+  engines, preselects safe installers, and runs Homebrew/Python installs.
+  System packages that need sudo and manual downloads are shown as commands or
+  links instead of being run unattended.
 - TUI — btop-style framed panels, dashboard columns, dense job/engine rows,
   generated forms, help overlay, quit confirmation while jobs are running.
 
@@ -359,8 +373,9 @@ the humanizer.
 
 ```toml
 [general]
-theme_name    = "opencode" # opencode | tokyonight | catppuccin | gruvbox | nord | monokai | vscode | rosepine
-max_jobs      = 4
+theme_name      = "opencode" # opencode | tokyonight | catppuccin | gruvbox | nord | monokai | vscode | rosepine
+max_jobs        = 4
+confirm_discard = true       # false: Esc discards an unfinished pipeline immediately
 
 [output]
 dir       = "~/Workbench/{date}"
@@ -392,13 +407,14 @@ make doctor
 
 ## Keys
 
-Global: `esc` back/close · `q` quit · `ctrl+c` quit/interrupt · `?` or `F1` contextual help · `ctrl+p` palette · `:` command mode · `/` search where a list has a filter.
+Global: `esc` back/close · `q` quit · `ctrl+c` quit/interrupt · `?` or `F1` contextual help · `ctrl+p` palette · `:` command mode · `/` search where a list has a filter. The bottom bar shows only the three most useful keys for the current screen; the full sheet is behind `?`.
 
 | Key | Action |
 |---|---|
 | `ctrl+p` / `:` | Command palette / command mode |
 | `ctrl+r` | Run the composed chain |
-| `ctrl+s` | Save the chain as a pipeline |
+| `ctrl+s` | Save the chain as a pipeline (apply the selection inside the file picker) |
+| `ctrl+f` | Multi-select file picker from the compose input step |
 | `ctrl+o` / `v` | Preview an input or output |
 | `ctrl+d` | Delete a selected saved pipeline (palette, after confirmation) |
 | `n` | New operation / append a step |
@@ -416,8 +432,8 @@ Global: `esc` back/close · `q` quit · `ctrl+c` quit/interrupt · `?` or `F1` c
 | `s` | Open Settings from Home |
 | `t` | Open the theme picker |
 | `v` | Open Statistics from Home |
-| `tab` | Complete a path/alias suggestion inside a text field; otherwise move focus |
-| `shift+tab` | Previous field or pane |
+| `tab` | Complete a path/alias suggestion; once the input resolves, continue to the next phase (Input → Output → Steps) |
+| `shift+tab` | Previous field or phase |
 | `ctrl+→` / `alt+→`, `ctrl+←` / `alt+←` | Next / previous field inside a text field |
 | `ctrl+v` | Paste from the system clipboard (Cmd+V also works) |
 | `←` / `→` | Move the field cursor; adjust a numeric or enum field |

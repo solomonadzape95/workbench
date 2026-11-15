@@ -3,6 +3,8 @@ package tui
 import (
 	"strings"
 	"testing"
+
+	"github.com/solomonadzape95/workbench/internal/config"
 )
 
 func TestKeymapHasNoDuplicateKeysPerContext(t *testing.T) {
@@ -27,6 +29,16 @@ func TestKeymapCoversEveryContext(t *testing.T) {
 		}
 		if sectionTitles[ctx] == "" {
 			t.Errorf("context %s has no title", ctx)
+		}
+	}
+}
+
+func TestFooterShowsAtMostThreeHints(t *testing.T) {
+	m := sized(t, Options{Config: config.Defaults()})
+	for _, screen := range []screen{screenHome, screenOperations, screenJobs, screenStats, screenSettings} {
+		m.screen = screen
+		if got := strings.Count(m.footerText(), " · ") + 1; got > maxFooterHints {
+			t.Errorf("screen %v shows %d footer hints: %q", screen, got, m.footerText())
 		}
 	}
 }

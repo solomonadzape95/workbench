@@ -107,17 +107,14 @@ func (m App) reviewView(height int) string {
 		"",
 		m.section("OUTPUTS", inner),
 	}
-	maxRows := max(min(len(r.entries), height-9), 1)
+	maxRows := max(min(len(r.entries), (max(height-10, 2)+1)/2), 1)
 	start := 0
 	if r.cursor >= maxRows {
 		start = r.cursor - maxRows + 1
 	}
-	for i := start; i < start+maxRows && i < len(r.entries); i++ {
+	end := min(start+maxRows, len(r.entries))
+	for i := start; i < end; i++ {
 		entry := r.entries[i]
-		marker := "  "
-		if i == r.cursor {
-			marker = m.theme.accent.Render("▸ ")
-		}
 		check := m.theme.danger.Render("[ ]")
 		if entry.keep {
 			check = m.theme.success.Render("[x]")
@@ -129,7 +126,11 @@ func (m App) reviewView(height int) string {
 		}
 		label := truncateTail(path, max(inner-32, 12))
 		size := m.theme.muted.Render(humanBytes(entry.before)) + m.theme.muted.Render(" → ") + humanBytes(entry.artifact.Size)
-		lines = append(lines, marker+check+"  "+label+"  "+size+missing)
+		line := check + "  " + label + "  " + size + missing
+		lines = append(lines, m.listRow(line, inner, i == r.cursor))
+		if i < end-1 {
+			lines = append(lines, "")
+		}
 	}
 	if len(r.entries) > maxRows {
 		lines = append(lines, m.theme.muted.Render(fmt.Sprintf("  %d–%d of %d", start+1, min(start+maxRows, len(r.entries)), len(r.entries))))

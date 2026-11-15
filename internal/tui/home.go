@@ -12,7 +12,7 @@ import (
 func (m App) homeView(height int) string {
 	width := min(m.width, 220)
 	contentWidth := max(width, 20)
-	if height < 16 {
+	if height < 20 {
 		return m.homeCompact(contentWidth)
 	}
 	identity := m.homeIdentity(contentWidth)
@@ -34,7 +34,7 @@ func (m App) homeView(height int) string {
 			rightW := contentWidth - leftW - 1
 			lowerLeft := m.homeRecent(leftW-4) + "\n" + m.homePipelines(leftW-4)
 			lower := lipgloss.JoinHorizontal(lipgloss.Top,
-				m.panel("Recent", lowerLeft, leftW, lowerH, false),
+				m.panel("Recent activity", lowerLeft, leftW, lowerH, false),
 				" ",
 				m.panel("Environment", m.homeEnvironment(rightW-4), rightW, lowerH, false))
 			return identity + "\n\n" + lower
@@ -47,7 +47,11 @@ func (m App) homeView(height int) string {
 	var content string
 	for {
 		footer := m.homeRecentLimit(contentWidth, limit)
-		content = identity + "\n" + lipgloss.PlaceHorizontal(contentWidth, lipgloss.Center, footer)
+		if footer == "" {
+			content = identity
+			break
+		}
+		content = identity + "\n\n" + lipgloss.PlaceHorizontal(contentWidth, lipgloss.Center, footer)
 		if lipgloss.Height(content) <= height || limit == 0 {
 			break
 		}
@@ -58,6 +62,26 @@ func (m App) homeView(height int) string {
 
 // homeCompact keeps the identity and the four most useful actions when the
 // body is too short for the full logo, descriptions, and recent work.
+type homeAction struct {
+	key   string
+	label string
+	desc  string
+}
+
+func homeActions() []homeAction {
+	return []homeAction{
+		{"n", "New job", "convert, compress, or transform files"},
+		{"a", "AI detector", "estimate AI-written share and likely model"},
+		{"e", "Open editor", "edit text, Markdown, JSON, TOML, and configs"},
+		{"j", "Jobs", "running and finished work"},
+		{"v", "Statistics", "saved space, activity, and success"},
+		{"s", "Settings", "output, theme, and config"},
+		{"?", "Help", "keys and screen guide"},
+	}
+}
+
+// homeCompact keeps the identity and the four most useful actions when the
+// body is too short for the full grid and recent work.
 func (m App) homeCompact(width int) string {
 	var b strings.Builder
 	b.WriteString(lipgloss.PlaceHorizontal(width, lipgloss.Center, m.logoForHome()))
@@ -65,14 +89,13 @@ func (m App) homeCompact(width int) string {
 	b.WriteString(lipgloss.PlaceHorizontal(width, lipgloss.Center, m.theme.title.Render("Workbench")))
 	b.WriteString("\n\n")
 	var actions strings.Builder
-	for _, action := range [][2]string{
-		{"n", "New job"},
-		{"a", "AI detector"},
-		{"j", "Jobs"},
-		{"?", "Help"},
+	for _, action := range []homeAction{
+		{"n", "New job", ""},
+		{"j", "Jobs", ""},
+		{"v", "Statistics", ""},
+		{"?", "Help", ""},
 	} {
-		actions.WriteString(m.theme.accent.Render(padRight(action[0], 3)))
-		actions.WriteString(m.theme.title.Render(action[1]))
+		actions.WriteString(m.homeActionLine(action, width))
 		actions.WriteString("\n")
 	}
 	b.WriteString(lipgloss.PlaceHorizontal(width, lipgloss.Center, strings.TrimSuffix(actions.String(), "\n")))
@@ -83,28 +106,42 @@ func (m App) homeIdentity(width int) string {
 	var b strings.Builder
 	b.WriteString(m.logoBlock(width))
 	b.WriteString("\n\n")
-
-	var actions strings.Builder
-	descWidth := clamp(width-20, 24, 48)
-	compact := width < 58
-	for _, action := range [][3]string{
-		{"n", "New job", "convert, compress, or transform files"},
-		{"a", "AI detector", "estimate AI-written share and likely model"},
-		{"e", "Open editor", "edit text, Markdown, JSON, TOML, and configs"},
-		{"j", "Jobs", "running and finished work"},
-		{"s", "Settings", "output, theme, and config"},
-		{"?", "Help", "keys and screen guide"},
-	} {
-		actions.WriteString(m.theme.accent.Render(padRight(action[0], 3)))
-		actions.WriteString(m.theme.title.Render(padRight(action[1], 14)))
-		if !compact {
-			actions.WriteString(m.theme.muted.Render(padRight(truncate(action[2], descWidth), descWidth)))
-		}
-		actions.WriteString("\n")
-	}
-	b.WriteString(lipgloss.PlaceHorizontal(width, lipgloss.Center, strings.TrimSuffix(actions.String(), "\n")))
-	b.WriteString("\n")
+	b.WriteString(m.homeActionGrid(width))
 	return b.String()
+}
+
+// homeActionGrid keeps Home scannable without turning it into a long list.
+// Wide terminals get two columns; descriptions only appear when there is room.
+// homeActionGrid keeps the menu on one axis with small group breaks. A single
+// column reads cleanly at every width; the old two-column grid left a large
+// empty gulf between labels and pushed the last item out of alignment.
+func (m App) homeActionGrid(width int) string {
+	groups := [][]homeAction{
+		homeActions()[0:3],
+		homeActions()[3:5],
+		homeActions()[5:7],
+	}
+	var lines []string
+	for i, group := range groups {
+		if i > 0 {
+			lines = append(lines, "")
+		}
+		for _, action := range group {
+			lines = append(lines, m.homeActionLine(action, width))
+		}
+	}
+	return lipgloss.PlaceHorizontal(width, lipgloss.Center, strings.Join(lines, "\n"))
+}
+
+func (m App) homeActionLine(action homeAction, width int) string {
+	const labelW = 16
+	line := m.theme.accent.Render(padRight(action.key, 3)) +
+		m.theme.title.Render(padRight(action.label, labelW))
+	if width >= 64 && action.desc != "" {
+		descW := clamp(width-22, 20, 44)
+		line += m.theme.muted.Render(padRight(truncate(action.desc, descW), descW))
+	}
+	return line
 }
 
 func (m App) homeRecent(width int) string {
@@ -112,6 +149,9 @@ func (m App) homeRecent(width int) string {
 }
 
 func (m App) homeRecentLimit(width, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
 	var b strings.Builder
 	b.WriteString(m.theme.accent.Render("Recent jobs"))
 	b.WriteString("\n")
@@ -124,6 +164,9 @@ func (m App) homeRecentLimit(width, limit int) string {
 	for i := 0; i < limit; i++ {
 		job := m.jobs[i]
 		glyph, style := m.jobGlyph(job.Status)
+		if i > 0 {
+			b.WriteString("\n")
+		}
 		b.WriteString("  ")
 		b.WriteString(style.Render(glyph))
 		b.WriteString(" ")
@@ -154,6 +197,9 @@ func (m App) homePipelines(width int) string {
 			b.WriteString(m.theme.muted.Render(fmt.Sprintf("  … %d more", len(metas)-i)))
 			b.WriteString("\n")
 			break
+		}
+		if i > 0 {
+			b.WriteString("\n")
 		}
 		b.WriteString("  ")
 		b.WriteString(m.theme.accent.Render("#" + truncate(meta.Name, max(width-14, 8))))

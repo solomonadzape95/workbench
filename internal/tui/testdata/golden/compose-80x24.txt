@@ -1,24 +1,24 @@
  ▓▓▓  Workbench › New job › Pipeline
 ────────────────────────────────────────────────────────────────────────────────
-  ╭─ Pipeline ───────────────────────────────────────────────────────────────╮
-  │ Convert image                                                            │
-  │ ▸ Input           path, glob, or @alias▏                                 │
+  ╭─ New job ────────────────────────────────────────────────────────────────╮
+  │   1 ● Input  ──  2 ○ Output  ──  3 ○ Steps                               │
+  │   Step 1 of 3 · Choose the files to work on                              │
+  │                                                                          │
+  │   Input files                                                            │
+  │                                                                          │
+  │   Runs once per file; each file gets its own output.                     │
+  │                                                                          │
+  │   Pipeline  Convert image                                                │
+  │                                                                          │
+  │ ▸ Path            path, glob, or @alias▏                                 │
   │   type a path, glob (~/Pictures/*.png), or @alias                        │
-  │   Output          /workbench/out                                         │
   │                                                                          │
-  │ type a path or @alias · tab completes · tab / shift+tab moves focus      │
+  │   Try                                                                    │
+  │   ~/Pictures/*.png  every PNG in Pictures                                │
+  │   @downloads        browse your Downloads folder                         │
+  │   @clipboard        paths copied from Finder                             │
   │                                                                          │
+  │   Tab completes · ctrl+f picks files · Enter continues · Esc goes back   │
   ╰──────────────────────────────────────────────────────────────────────────╯
-  ╭─ Steps ──────────────────────────────────────────────────────────────────╮
-  │ ▸ 1. Convert image           Format PNG · JPEG quality 85                │
-  │                                                                          │
-  │ enter edit · n add · d remove · J/K move                                 │
-  │                                                                          │
-  │ Selected step                                                            │
-  │   Format        PNG                                                      │
-  │   JPEG quality  85                                                       │
-  │                                                                          │
-  ╰──────────────────────────────────────────────────────────────────────────╯
-
 ────────────────────────────────────────────────────────────────────────────────
- F1 help · tab focus / complete · ctrl+r run · ctrl+s save · ctrl+o preview ·…
+ enter continue · tab complete · esc back

@@ -53,6 +53,9 @@ func (m App) aliasesBuiltin(width int) string {
 		if query != "" && !strings.Contains(strings.ToLower(row[0]+" "+row[1]), query) {
 			continue
 		}
+		if shown > 0 {
+			b.WriteString("\n")
+		}
 		b.WriteString(m.theme.accent.Render(padRight(row[0], 16)))
 		b.WriteString(m.theme.muted.Render(truncate(row[1], max(width-18, 10))))
 		b.WriteString("\n")
@@ -86,6 +89,9 @@ func (m App) aliasesConfigured(width int) string {
 		}
 		if query != "" && !strings.Contains(strings.ToLower("@"+alias.Name+" "+target), query) {
 			continue
+		}
+		if shown > 0 {
+			b.WriteString("\n")
 		}
 		b.WriteString(m.theme.accent.Render(padRight("@"+alias.Name, 16)))
 		b.WriteString(m.theme.muted.Render(truncate(target, max(width-18, 10))))

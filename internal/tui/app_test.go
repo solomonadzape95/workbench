@@ -19,6 +19,7 @@ import (
 	"github.com/solomonadzape95/workbench/internal/engines"
 	"github.com/solomonadzape95/workbench/internal/history"
 	audioops "github.com/solomonadzape95/workbench/internal/ops/audio"
+	docops "github.com/solomonadzape95/workbench/internal/ops/doc"
 	"github.com/solomonadzape95/workbench/internal/ops/file"
 	humanizeops "github.com/solomonadzape95/workbench/internal/ops/humanize"
 	imageops "github.com/solomonadzape95/workbench/internal/ops/image"
@@ -45,8 +46,8 @@ func TestViewAtMinimumSize(t *testing.T) {
 	if !strings.Contains(content, "Workbench") {
 		t.Errorf("view is missing the title:\n%s", content)
 	}
-	if !strings.Contains(content, "No jobs yet") {
-		t.Errorf("view is missing the empty state:\n%s", content)
+	if !strings.Contains(content, "New job") {
+		t.Errorf("view is missing the home actions:\n%s", content)
 	}
 }
 
@@ -162,14 +163,48 @@ func TestComposeFormIsGeneratedFromSpec(t *testing.T) {
 	}
 }
 
+func TestComposeExplainsAggregateMode(t *testing.T) {
+	ops := core.NewRegistry(docops.Merge{}, imageops.Convert{})
+	m := sized(t, Options{Config: config.Defaults(), Operations: ops})
+	m.compose = newCompose(docops.Merge{}, m.opts.Config)
+	m.screen = screenCompose
+	content := m.View().Content
+	for _, want := range []string{"Files to combine", "Combines every selected file into one output."} {
+		if !strings.Contains(content, want) {
+			t.Errorf("aggregate compose is missing %q:\n%s", want, content)
+		}
+	}
+
+	m.screen = screenOperations
+	m.ops = ops.All()
+	content = m.View().Content
+	for _, want := range []string{"combine", "per file"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("operation picker is missing mode %q:\n%s", want, content)
+		}
+	}
+}
+
 func TestHumanizeComposeShowsStyleAndModel(t *testing.T) {
 	op := &humanizeops.Humanize{}
 	ops := core.NewRegistry(op)
 	m := sized(t, Options{Config: config.Defaults(), Operations: ops})
 	m.compose = newCompose(op, m.opts.Config)
 	m.screen = screenCompose
+	if content := m.View().Content; !strings.Contains(content, "Humanize text") {
+		t.Errorf("humanize compose is missing its step summary:\n%s", content)
+	}
+	// Step options live on the third phase now; the input step stays focused
+	// on choosing files. Enter opens the focused step editor, which is the
+	// complete, scrollable form.
+	m.compose.advancePhase()
+	m.compose.advancePhase()
+	m = press(m, enterKey)
+	if m.compose.editing < 0 {
+		t.Fatal("enter did not open the selected step")
+	}
 	content := m.View().Content
-	for _, want := range []string{"Humanize text", "Style", "Model", "Voice sample"} {
+	for _, want := range []string{"Style", "Model", "Voice sample"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("humanize compose is missing %q:\n%s", want, content)
 		}
@@ -687,13 +722,19 @@ func TestHomeLogoAboveWordmarkAndCentered(t *testing.T) {
 	}
 }
 
-func TestSparkline(t *testing.T) {
-	got := sparkline([]int{0, 50, 100}, 3)
-	if len([]rune(got)) != 3 {
-		t.Errorf("sparkline = %q", got)
+func TestHomeBodyAndFooterDoNotDuplicateShortcuts(t *testing.T) {
+	m := sized(t, Options{Config: config.Defaults()})
+	footer := m.footerText()
+	for _, dup := range []string{"new job", "jobs", "help"} {
+		if strings.Contains(footer, dup) {
+			t.Errorf("home footer repeats body shortcut %q: %q", dup, footer)
+		}
 	}
-	if sparkline(nil, 4) != "" {
-		t.Error("empty sparkline should be empty")
+	if !strings.Contains(footer, "palette") || !strings.Contains(footer, "theme") {
+		t.Errorf("home footer should advertise palette and theme: %q", footer)
+	}
+	if content := xansi.Strip(m.View().Content); !strings.Contains(content, "Statistics") {
+		t.Errorf("home actions do not show statistics:\n%s", content)
 	}
 }
 
@@ -982,29 +1023,32 @@ func TestPalettePrefersLiteralMatches(t *testing.T) {
 	}
 }
 
-func TestSelectedJobKeepsProgressColor(t *testing.T) {
+func TestSelectedJobKeepsStatusColor(t *testing.T) {
 	m := sized(t, Options{Config: config.Defaults()})
 	job := runner.JobView{ID: "j1", Name: "Copy", Status: core.StatusDone, Items: []runner.ItemView{{ID: "i", Status: core.ItemStatusDone}}}
 	m.jobs = []runner.JobView{job}
 	m.selectedJob = "j1"
 	line := m.jobLine(job, 60, true)
-	successPrefix := strings.SplitN(m.theme.success.Render("⣿"), "⣿", 2)[0]
-	if !strings.Contains(line, successPrefix+"⣿") {
-		t.Fatalf("selected done bar lost its success color:\n%q", line)
+	successPrefix := strings.SplitN(m.theme.success.Render("●"), "●", 2)[0]
+	if !strings.Contains(line, successPrefix+"●") {
+		t.Fatalf("selected done row lost its status color:\n%q", line)
 	}
 }
 
-func TestJobMetricsExplainSizeAndProgress(t *testing.T) {
+func TestJobDetailExplainsSizeAndSavings(t *testing.T) {
 	m := sized(t, Options{Config: config.Defaults()})
 	job := runner.JobView{
+		ID:      "j1",
 		Name:    "Compress file",
+		Status:  core.StatusDone,
 		Metrics: core.Metrics{BytesIn: 55 * 1024 * 1024, BytesOut: 4 * 1024 * 1024},
-		Samples: []int{0, 25, 100},
 	}
-	line := xansi.Strip(m.jobMetricsLine(job))
-	for _, want := range []string{"size", "space saved", "progress"} {
+	m.jobs = []runner.JobView{job}
+	m.selectedJob = "j1"
+	line := xansi.Strip(m.jobDetailContent(70))
+	for _, want := range []string{"Size", "space saved"} {
 		if !strings.Contains(line, want) {
-			t.Errorf("metrics missing %q: %q", want, line)
+			t.Errorf("detail missing %q: %q", want, line)
 		}
 	}
 }
@@ -1024,7 +1068,7 @@ func TestGhosttyAndVSCodeThemes(t *testing.T) {
 	}
 }
 
-func TestComposeTabCompletesAndCtrlArrowsFocus(t *testing.T) {
+func TestComposeTabCompletesThenAdvances(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "photo.png")
 	if err := os.WriteFile(path, []byte("not an image"), 0o644); err != nil {
@@ -1044,12 +1088,17 @@ func TestComposeTabCompletesAndCtrlArrowsFocus(t *testing.T) {
 		t.Errorf("tab completion = %q, want %q", m.compose.input, path)
 	}
 	if m.compose.focus != focusInput {
-		t.Errorf("tab changed focus to %v", m.compose.focus)
+		t.Errorf("first tab changed focus to %v", m.compose.focus)
 	}
-	m = press(m, ctrlRightKey)
+
+	// Simulate the debounce result so the second Tab is allowed to advance.
+	m.compose.artifacts = []core.Artifact{{Path: path}}
+	m.compose.resolving = false
+	m = press(m, tea.KeyPressMsg{Code: tea.KeyTab})
 	if m.compose.focus != focusOutput {
-		t.Errorf("ctrl+right focus = %v, want output", m.compose.focus)
+		t.Errorf("second tab focus = %v, want output", m.compose.focus)
 	}
+
 	m = press(m, ctrlLeftKey)
 	if m.compose.focus != focusInput {
 		t.Errorf("ctrl+left focus = %v, want input", m.compose.focus)
@@ -1058,17 +1107,80 @@ func TestComposeTabCompletesAndCtrlArrowsFocus(t *testing.T) {
 	if m.compose.focus != focusOutput {
 		t.Errorf("alt+right focus = %v, want output", m.compose.focus)
 	}
+
 	m = press(m, tea.KeyPressMsg{Code: tea.KeyTab})
-	if m.compose.focus != focusSteps {
-		t.Errorf("tab focus = %v, want steps", m.compose.focus)
+	if m.compose.focus != focusOutput || m.compose.outputFocus != 1 {
+		t.Errorf("tab in output = phase %v row %d, want the beside-input checkbox", m.compose.focus, m.compose.outputFocus)
 	}
-	m = press(m, altLeftKey)
-	if m.compose.focus != focusOutput {
-		t.Errorf("alt+left focus = %v, want output", m.compose.focus)
+	m = press(m, tea.KeyPressMsg{Code: ' ', Text: " "})
+	if !m.compose.inPlace {
+		t.Error("space did not toggle save-beside-input")
+	}
+	m = press(m, tea.KeyPressMsg{Code: tea.KeyTab})
+	if m.compose.outputFocus != 0 {
+		t.Errorf("tab from checkbox = row %d, want the folder field", m.compose.outputFocus)
+	}
+	m = press(m, enterKey)
+	if m.compose.focus != focusSteps {
+		t.Errorf("enter in output = %v, want steps", m.compose.focus)
 	}
 	m = press(m, tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift})
+	if m.compose.focus != focusOutput {
+		t.Errorf("shift+tab from steps = %v, want output", m.compose.focus)
+	}
+	m = press(m, escKey)
 	if m.compose.focus != focusInput {
-		t.Errorf("shift+tab focus = %v, want input", m.compose.focus)
+		t.Errorf("esc from output = %v, want input", m.compose.focus)
+	}
+}
+
+func TestFilePickerSelectsMultipleFilesInOrder(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"a.pdf", "b.pdf", "notes.txt"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg := config.Defaults()
+	m := sized(t, Options{Config: cfg, Operations: core.NewRegistry(docops.Merge{})})
+	m.compose = newCompose(docops.Merge{}, cfg)
+	m.compose.input = dir
+	m.screen = screenCompose
+
+	m = press(m, tea.KeyPressMsg{Code: 'f', Mod: tea.ModCtrl})
+	if m.picker == nil {
+		t.Fatal("ctrl+f did not open the file picker")
+	}
+	m = press(m, tea.KeyPressMsg{Code: tea.KeyDown})
+	m = press(m, tea.KeyPressMsg{Code: ' ', Text: " "}) // b.pdf
+	m = press(m, tea.KeyPressMsg{Code: tea.KeyUp})
+	m = press(m, tea.KeyPressMsg{Code: ' ', Text: " "}) // a.pdf
+	m = press(m, tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl})
+
+	if m.picker != nil {
+		t.Fatal("ctrl+s did not close the picker")
+	}
+	want := filepath.Join(dir, "b.pdf") + ", " + filepath.Join(dir, "a.pdf")
+	if m.compose.input != want {
+		t.Fatalf("picked input = %q, want %q", m.compose.input, want)
+	}
+	if strings.Contains(m.compose.input, "notes.txt") {
+		t.Fatal("picker included a file the operation does not accept")
+	}
+}
+
+func TestComposeInPlaceTargetUsesInputFolders(t *testing.T) {
+	c := newCompose(imageops.Convert{}, config.Defaults())
+	c.input = "/tmp/photos/a.png"
+	c.artifacts = []core.Artifact{{Path: "/tmp/photos/a.png"}}
+	c.inPlace = true
+
+	target := c.target(config.Defaults())
+	if !target.BesideInput {
+		t.Fatal("in-place compose did not set BesideInput")
+	}
+	if target.Dir != "/tmp/photos" {
+		t.Errorf("fallback dir = %q, want /tmp/photos", target.Dir)
 	}
 }
 
@@ -1144,6 +1256,43 @@ func TestDeleteStepRequiresConfirmation(t *testing.T) {
 	m = press(m, tea.KeyPressMsg{Code: 'y', Text: "y"})
 	if m.confirm != nil || len(m.compose.steps) != 0 {
 		t.Fatalf("confirm = %v steps = %d", m.confirm, len(m.compose.steps))
+	}
+}
+
+func TestDiscardModalCanDisableFutureAsks(t *testing.T) {
+	m := sized(t, Options{Config: config.Defaults(), Operations: core.NewRegistry(imageops.Convert{})})
+	m.compose = newCompose(imageops.Convert{}, m.opts.Config)
+	m.compose.input = "/tmp/a.png"
+	m.compose.dirty = true
+	m.screen = screenCompose
+	m = press(m, tea.KeyPressMsg{Code: tea.KeyEscape})
+	if m.confirm == nil || !m.confirm.showToggle {
+		t.Fatal("discard modal did not offer the don't-ask toggle")
+	}
+	m = press(m, tea.KeyPressMsg{Code: ' ', Text: " "})
+	if !m.confirm.dontAsk {
+		t.Fatal("space did not toggle don't ask again")
+	}
+	m = press(m, tea.KeyPressMsg{Code: 'y', Text: "y"})
+	if m.confirm != nil || m.compose != nil {
+		t.Fatalf("confirm = %v compose = %v", m.confirm, m.compose)
+	}
+	if m.opts.Config.General.ConfirmDiscard {
+		t.Fatal("don't ask again did not disable confirm_discard")
+	}
+}
+
+func TestComposeEscapeSkipsConfirmationWhenDisabled(t *testing.T) {
+	cfg := config.Defaults()
+	cfg.General.ConfirmDiscard = false
+	m := sized(t, Options{Config: cfg, Operations: core.NewRegistry(imageops.Convert{})})
+	m.compose = newCompose(imageops.Convert{}, cfg)
+	m.compose.input = "/tmp/a.png"
+	m.compose.dirty = true
+	m.screen = screenCompose
+	m = press(m, tea.KeyPressMsg{Code: tea.KeyEscape})
+	if m.confirm != nil || m.compose != nil || m.screen != screenOperations {
+		t.Fatalf("confirm = %v compose = %v screen = %v", m.confirm, m.compose, m.screen)
 	}
 }
 

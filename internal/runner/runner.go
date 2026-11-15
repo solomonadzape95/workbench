@@ -122,7 +122,7 @@ func (r *Runner) Start(p core.Pipeline, inputs []core.Artifact, target core.Targ
 	}
 
 	target = normalizeTarget(target)
-	if target.Dir == "" {
+	if target.Dir == "" && !target.BesideInput {
 		return nil, core.NewError(core.CodeUsage, "", "", "no output directory", "")
 	}
 

@@ -214,6 +214,8 @@ func buildOperations(cfg config.Config) *core.Registry {
 		client := opencode.NewClient(config.ExpandHome(cfg.Engines.Paths[string(engines.OpenCode)]))
 		client.ServerURL = cfg.OpenCode.URL
 		client.Password = cfg.OpenCode.Password
+		client.AllowPaid = cfg.OpenCode.AllowPaid
+		client.AllowedProviders = cfg.OpenCode.AllowedProviders
 		ops = append(ops,
 			&humanizeops.Humanize{Client: client},
 			docops.Translate{Client: client},
@@ -275,6 +277,8 @@ func buildRegistry(cfg config.Config) *engines.Registry {
 		client := opencode.NewClient(config.ExpandHome(cfg.Engines.Paths[string(engines.OpenCode)]))
 		client.ServerURL = cfg.OpenCode.URL
 		client.Password = cfg.OpenCode.Password
+		client.AllowPaid = cfg.OpenCode.AllowPaid
+		client.AllowedProviders = cfg.OpenCode.AllowedProviders
 		list = append(list, client)
 	}
 	return engines.NewRegistry(list...)

@@ -27,6 +27,10 @@ type Target struct {
 	Dir       string
 	Template  string
 	Collision Collision
+	// BesideInput writes each finished file next to its source file. Dir stays
+	// as the fallback location for aggregate steps and for validation, but the
+	// runner resolves the real directory per item.
+	BesideInput bool
 }
 
 // OutputPath renders the target template for one artifact. The collision policy

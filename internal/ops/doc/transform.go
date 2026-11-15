@@ -18,14 +18,13 @@ import (
 	"github.com/solomonadzape95/workbench/internal/core"
 	"github.com/solomonadzape95/workbench/internal/engines"
 	"github.com/solomonadzape95/workbench/internal/engines/opencode"
-	"github.com/solomonadzape95/workbench/internal/ops/humanize"
 )
 
 const transformCallTimeout = 90 * time.Second
 
 // textGenerator is the part of the OpenCode client these operations need.
 type textGenerator interface {
-	FreeModels(context.Context) ([]opencode.ModelRef, error)
+	Models(context.Context) ([]opencode.ModelRef, error)
 	Generate(context.Context, opencode.ModelRef, string) (string, error)
 }
 
@@ -33,9 +32,8 @@ func transformParams(extra ...core.ParamSpec) []core.ParamSpec {
 	out := append([]core.ParamSpec(nil), extra...)
 	out = append(out,
 		core.ParamSpec{
-			Key: "model", Label: "Model", Type: core.ParamEnum, Default: "auto",
-			Options: humanize.Models(),
-			Help:    "Auto tries free models in order and falls back when one is limited or unavailable.",
+			Key: "model", Label: "Model", Type: core.ParamString, Default: "auto",
+			Help: "auto tries free models in order; enter provider/model to use a model you connected in OpenCode (run `opencode models`).",
 		},
 		core.ParamSpec{
 			Key: "chunk_words", Label: "Chunk size", Type: core.ParamInt, Default: 900,
@@ -234,6 +232,10 @@ func validateTransform(ctx context.Context, spec core.Spec, client textGenerator
 	if err := core.Validate(spec.Params, req.Params); err != nil {
 		return err
 	}
+	if err := opencode.ValidateRef(req.Params.String("model")); err != nil {
+		return core.NewError(core.CodeUsage, spec.ID, "", err.Error(),
+			"use auto or provider/model, for example anthropic/claude-sonnet-5-5")
+	}
 	if len(req.Items) == 0 {
 		return core.NewError(core.CodeUsage, spec.ID, "", "no input files", "")
 	}
@@ -329,7 +331,7 @@ func runTransform(ctx context.Context, req core.Request, rep core.Reporter, opts
 				return core.Result{}, err
 			}
 			return core.Result{}, core.Wrap(core.CodeEngineFailed, opts.spec.ID, item.Path, err,
-				"check that OpenCode is running and that a free model is enabled; run `opencode models`")
+				"check that OpenCode is running and that a model is connected; run `opencode models`")
 		}
 		if stats.model != "" {
 			usedModels[stats.model] = true
@@ -341,7 +343,7 @@ func runTransform(ctx context.Context, req core.Request, rep core.Reporter, opts
 			combined, ref, combineErr := transformer.generateText(ctx, opts.combine(joined), requested, rep)
 			if combineErr != nil {
 				return core.Result{}, core.Wrap(core.CodeEngineFailed, opts.spec.ID, item.Path, combineErr,
-					"check that OpenCode is running and that a free model is enabled")
+					"check that OpenCode is running and that a model is connected")
 			}
 			if ref.ID != "" {
 				usedModels[ref.String()] = true
@@ -484,16 +486,19 @@ func (t *textTransformer) mapChunks(
 }
 
 func (t *textTransformer) generateText(ctx context.Context, prompt, requested string, rep core.Reporter) (string, opencode.ModelRef, error) {
-	models, err := t.freeModels(ctx)
+	models, err := t.availableModels(ctx)
 	if err != nil {
-		return "", opencode.ModelRef{}, err
+		if strings.TrimSpace(requested) == "" || strings.EqualFold(requested, "auto") {
+			return "", opencode.ModelRef{}, err
+		}
+		models = nil
 	}
 	chain := t.chain(requested, models)
 	candidates := t.available(chain)
 	if len(candidates) == 0 {
 		t.clearDown()
 		candidates = t.available(chain)
-		rep.Log(core.LevelWarn, "all free models were marked unavailable; retrying the fallback chain")
+		rep.Log(core.LevelWarn, "all models were marked unavailable; retrying the fallback chain")
 	}
 	var lastErr error
 	for _, model := range candidates {
@@ -505,22 +510,22 @@ func (t *textTransformer) generateText(ctx context.Context, prompt, requested st
 			lastErr = err
 			if errors.Is(err, context.DeadlineExceeded) && ctx.Err() == nil {
 				t.markDown(model, err)
-				rep.Log(core.LevelWarn, "model %s timed out; trying the next free model", model)
+				rep.Log(core.LevelWarn, "model %s timed out; trying the next model", model)
 				continue
 			}
 			if opencode.IsModelUnavailable(err) {
 				t.markDown(model, err)
-				rep.Log(core.LevelWarn, "model %s unavailable; trying the next free model: %v", model, err)
+				rep.Log(core.LevelWarn, "model %s unavailable; trying the next model: %v", model, err)
 				continue
 			}
-			rep.Log(core.LevelWarn, "model %s failed; trying the next free model: %v", model, err)
+			rep.Log(core.LevelWarn, "model %s failed; trying the next model: %v", model, err)
 			continue
 		}
 		t.setPreferred(model)
 		return out, model, nil
 	}
 	if lastErr == nil {
-		lastErr = errors.New("no free model was available")
+		lastErr = errors.New("no model was available")
 	}
 	return "", opencode.ModelRef{}, lastErr
 }
@@ -535,7 +540,7 @@ func (t *textTransformer) call(ctx context.Context, model opencode.ModelRef, pro
 	return t.client.Generate(callCtx, model, prompt)
 }
 
-func (t *textTransformer) freeModels(ctx context.Context) ([]opencode.ModelRef, error) {
+func (t *textTransformer) availableModels(ctx context.Context) ([]opencode.ModelRef, error) {
 	t.mu.Lock()
 	if len(t.models) > 0 && time.Since(t.modelsAt) < 10*time.Minute {
 		models := append([]opencode.ModelRef(nil), t.models...)
@@ -543,7 +548,7 @@ func (t *textTransformer) freeModels(ctx context.Context) ([]opencode.ModelRef, 
 		return models, nil
 	}
 	t.mu.Unlock()
-	models, err := t.client.FreeModels(ctx)
+	models, err := t.client.Models(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -568,7 +573,7 @@ func (t *textTransformer) chain(requested string, models []opencode.ModelRef) []
 		seen[key] = true
 		out = append(out, ref)
 	}
-	if strings.TrimSpace(requested) != "" && requested != "auto" {
+	if strings.TrimSpace(requested) != "" && !strings.EqualFold(requested, "auto") {
 		if ref, err := opencode.ParseRef(requested); err == nil {
 			add(ref)
 		}
@@ -576,13 +581,22 @@ func (t *textTransformer) chain(requested string, models []opencode.ModelRef) []
 	t.mu.Lock()
 	preferred := t.preferred
 	t.mu.Unlock()
-	if preferred.ID != "" {
+	if preferred.ID != "" && containsTextModel(models, preferred) {
 		add(preferred)
 	}
 	for _, model := range models {
 		add(model)
 	}
 	return out
+}
+
+func containsTextModel(models []opencode.ModelRef, ref opencode.ModelRef) bool {
+	for _, model := range models {
+		if model.ProviderID == ref.ProviderID && model.ID == ref.ID {
+			return true
+		}
+	}
+	return false
 }
 
 func (t *textTransformer) available(chain []opencode.ModelRef) []opencode.ModelRef {

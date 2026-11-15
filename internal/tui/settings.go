@@ -27,7 +27,9 @@ func (m App) settingsItems() []settingsItem {
 		{"Output folder", m.opts.Config.Output.Dir, "output", "enter"},
 		{"Theme", theme, "theme", "enter/t"},
 		{"Max jobs", strconv.Itoa(m.opts.Config.General.MaxJobs), "jobs", "enter"},
+		{"Confirm discard", onOffValue(m.opts.Config.General.ConfirmDiscard), "discard", "enter toggle"},
 		{"Aliases", fmt.Sprintf("%d configured", len(m.opts.Config.Aliases)), "aliases", "enter browse · e edit"},
+		{"OpenCode auto", openCodeAutoValue(m.opts.Config), "opencode", "enter toggle"},
 		{"Config file", m.opts.Paths.ConfigFile, "config", "e edit"},
 	}
 }
@@ -95,13 +97,35 @@ func (m App) runSettingsItem(item settingsItem) (tea.Model, tea.Cmd) {
 		return m.openThemePicker(screenSettings)
 	case "jobs":
 		m.prompt = newValuePrompt(promptMaxJobs, "Max simultaneous jobs", strconv.Itoa(m.opts.Config.General.MaxJobs))
+	case "discard":
+		cfg := m.opts.Config
+		cfg.General.ConfirmDiscard = !cfg.General.ConfirmDiscard
+		return m.saveSetting(cfg, "discard confirmation "+onOffValue(cfg.General.ConfirmDiscard))
 	case "aliases":
 		m.screen = screenAliases
 		return m, nil
+	case "opencode":
+		cfg := m.opts.Config
+		cfg.OpenCode.AllowPaid = !cfg.OpenCode.AllowPaid
+		return m.saveSetting(cfg, "OpenCode auto model policy saved — restart to apply")
 	case "config":
 		return m.openConfigEditor()
 	}
 	return m, nil
+}
+
+func onOffValue(value bool) string {
+	if value {
+		return "on"
+	}
+	return "off"
+}
+
+func openCodeAutoValue(cfg config.Config) string {
+	if cfg.OpenCode.AllowPaid {
+		return "paid allowed"
+	}
+	return "free only"
 }
 
 func (m App) settingsView(height int) string {
@@ -111,21 +135,21 @@ func (m App) settingsView(height int) string {
 	b.WriteString(m.theme.muted.Render("Changes are written to config.toml."))
 	b.WriteString("\n\n")
 
-	for i, item := range m.settingsItems() {
-		marker := "  "
+	items := m.settingsItems()
+	for i, item := range items {
+		selected := i == m.settingsCursor
 		style := m.theme.muted
-		if i == m.settingsCursor {
-			marker = m.theme.accent.Render("▸ ")
+		if selected {
 			style = m.theme.accent
 		}
-		line := marker + style.Render(padRight(item.label, 16)) +
-			m.theme.title.Render(padRight(truncate(item.value, max(contentWidth-34, 12)), max(contentWidth-34, 12))) +
+		line := style.Render(padRight(item.label, 16)) +
+			m.theme.title.Render(padRight(truncate(item.value, max(contentWidth-36, 12)), max(contentWidth-36, 12))) +
 			m.theme.muted.Render(item.hint)
-		if i == m.settingsCursor {
-			line = m.selectedRow(line, contentWidth)
-		}
-		b.WriteString(line)
+		b.WriteString(m.listRow(line, contentWidth, selected))
 		b.WriteString("\n")
+		if i < len(items)-1 {
+			b.WriteString("\n")
+		}
 	}
 	b.WriteString("\n")
 	b.WriteString(m.theme.muted.Render("j/k move · enter edit · t theme · e config · esc back"))

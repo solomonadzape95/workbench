@@ -63,6 +63,16 @@ func ParseRef(value string) (ModelRef, error) {
 	return ModelRef{ProviderID: provider, ID: model}, nil
 }
 
+// ValidateRef accepts "auto", an empty string, or a provider/model reference.
+func ValidateRef(value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" || strings.EqualFold(value, "auto") {
+		return nil
+	}
+	_, err := ParseRef(value)
+	return err
+}
+
 // APIError is a non-2xx response from the OpenCode API.
 type APIError struct {
 	Status     int
@@ -117,6 +127,14 @@ type Client struct {
 	ServerURL string
 	Password  string
 	HTTP      *http.Client
+
+	// AllowPaid lets automatic model selection fall back to paid models from
+	// providers the user connected to OpenCode. An explicit provider/model can
+	// always be used, regardless of this flag.
+	AllowPaid bool
+	// AllowedProviders narrows discovery when non-empty. It applies to both
+	// free and paid models; an explicit provider/model bypasses it.
+	AllowedProviders []string
 }
 
 func NewClient(path string) *Client {
@@ -163,10 +181,14 @@ func (c *Client) Probe(parent context.Context) engines.Info {
 		info.Version = firstLine(out)
 	}
 
-	models, err := c.freeModels(ctx, false)
+	models, err := c.models(ctx, false, c.AllowPaid)
 	switch {
 	case err == nil:
-		info.Detail = fmt.Sprintf("%d free text models ready", len(models))
+		if c.AllowPaid {
+			info.Detail = fmt.Sprintf("%d text models ready", len(models))
+		} else {
+			info.Detail = fmt.Sprintf("%d free text models ready", len(models))
+		}
 	case IsAuthError(err):
 		info.Available = false
 		info.Detail = "server is running, but the service password was rejected"
@@ -178,13 +200,21 @@ func (c *Client) Probe(parent context.Context) engines.Info {
 	return info
 }
 
-// FreeModels returns the free text models available through OpenCode, ordered
-// so the models that have been most reliable for rewriting come first.
-func (c *Client) FreeModels(ctx context.Context) ([]ModelRef, error) {
-	return c.freeModels(ctx, true)
+// Models returns the text models available through OpenCode, ordered so the
+// curated free models come first. Paid models are included only when
+// AllowPaid is true. An explicit provider/model does not need to be in this
+// list; Generate can call it directly.
+func (c *Client) Models(ctx context.Context) ([]ModelRef, error) {
+	return c.models(ctx, true, c.AllowPaid)
 }
 
-func (c *Client) freeModels(ctx context.Context, start bool) ([]ModelRef, error) {
+// FreeModels returns only zero-cost models. It is kept for the free-model
+// path and for callers that want to ignore the user's paid opt-in.
+func (c *Client) FreeModels(ctx context.Context) ([]ModelRef, error) {
+	return c.models(ctx, true, false)
+}
+
+func (c *Client) models(ctx context.Context, start, includePaid bool) ([]ModelRef, error) {
 	base, pass, err := c.ensureServer(ctx, start)
 	if err != nil {
 		return nil, err
@@ -198,7 +228,7 @@ func (c *Client) freeModels(ctx context.Context, start bool) ([]ModelRef, error)
 
 	out := make([]ModelRef, 0, len(response.Data))
 	for _, m := range response.Data {
-		if !m.usable() {
+		if !m.usable(includePaid, c.AllowedProviders) {
 			continue
 		}
 		ref := ModelRef{ProviderID: m.ProviderID, ID: m.ID}
@@ -208,6 +238,11 @@ func (c *Client) freeModels(ctx context.Context, start bool) ([]ModelRef, error)
 		out = append(out, ref)
 	}
 	if len(out) == 0 {
+		if includePaid {
+			return nil, core.NewError(core.CodeEngineMissing, "", "",
+				"OpenCode has no text models available",
+				"connect a provider in OpenCode, then run `opencode models`")
+		}
 		return nil, core.NewError(core.CodeEngineMissing, "", "",
 			"OpenCode has no free text models available",
 			"enable or connect a free provider in OpenCode, then run `opencode models`")
@@ -564,7 +599,7 @@ type modelLimit struct {
 	Output  int `json:"output"`
 }
 
-func (m modelInfo) usable() bool {
+func (m modelInfo) usable(includePaid bool, allowedProviders []string) bool {
 	if m.ProviderID == "" || m.ID == "" {
 		return false
 	}
@@ -577,7 +612,25 @@ func (m modelInfo) usable() bool {
 	if !m.hasTextOutput() {
 		return false
 	}
-	if !m.isFree() {
+	if len(allowedProviders) > 0 {
+		found := false
+		for _, provider := range allowedProviders {
+			if strings.EqualFold(provider, m.ProviderID) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	} else if !includePaid {
+		switch m.ProviderID {
+		case "opencode", "opencode-go", "nvidia":
+		default:
+			return false
+		}
+	}
+	if !includePaid && !m.isFree() {
 		return false
 	}
 	name := strings.ToLower(m.ID + " " + m.Name)
@@ -586,12 +639,7 @@ func (m modelInfo) usable() bool {
 			return false
 		}
 	}
-	switch m.ProviderID {
-	case "opencode", "opencode-go", "nvidia":
-		return true
-	default:
-		return false
-	}
+	return true
 }
 
 func (m modelInfo) hasTextOutput() bool {

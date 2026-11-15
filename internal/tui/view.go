@@ -146,6 +146,9 @@ func (m App) renderHints(text string) string {
 }
 
 func (m App) breadcrumb() string {
+	if m.installer != nil {
+		return "Install engines"
+	}
 	switch m.screen {
 	case screenHome:
 		return ""
@@ -208,13 +211,19 @@ func (m App) bodyView(height int) string {
 	case m.palette != nil:
 		content = m.paletteView(height)
 		center = true
+	case m.picker != nil:
+		content = m.pickerView(height)
+		center = true
+	case m.installer != nil:
+		content = m.installerView(height)
+		center = true
 	case m.logView != nil:
 		content = m.logViewView()
 	default:
 		content = m.screenView(height)
 	}
 
-	if m.screen == screenHome && !m.showHelp && !m.confirmQuit && m.confirm == nil && m.prompt == nil && m.palette == nil && m.logView == nil {
+	if m.screen == screenHome && !m.showHelp && !m.confirmQuit && m.confirm == nil && m.prompt == nil && m.palette == nil && m.installer == nil && m.logView == nil {
 		return lipgloss.Place(m.width, height, lipgloss.Center, lipgloss.Center, lipgloss.NewStyle().MaxHeight(height).Render(content))
 	}
 	content = lipgloss.NewStyle().MaxWidth(m.width - 4).MaxHeight(height).Render(content)

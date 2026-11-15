@@ -77,7 +77,9 @@ func (m App) operationsView(height int) string {
 	m.opIndex = clamp(m.opIndex, 0, len(filtered)-1)
 
 	contentHeight := max(height-2, 6)
-	listRows := max(contentHeight-7, 3)
+	// Header takes three rows (search, hint, gap); the selected summary needs
+	// two to four. Each list row now occupies two rows because of the gap.
+	listRows := max((contentHeight-8+1)/2, 2)
 	start := 0
 	if m.opIndex >= listRows {
 		start = m.opIndex - listRows + 1
@@ -86,31 +88,35 @@ func (m App) operationsView(height int) string {
 	for i := start; i < end; i++ {
 		op := filtered[i]
 		spec := op.Spec()
-		marker := "  "
+		selected := i == m.opIndex
 		titleStyle := lipgloss.NewStyle()
-		if i == m.opIndex {
-			marker = m.theme.accent.Render("▸ ")
+		if selected {
 			titleStyle = m.theme.accent
 		}
+		mode := operationModeLabel(spec)
 		meta := string(spec.Domain) + " · " + acceptsSummary(spec)
-		line := marker + titleStyle.Render(padRight(spec.Title, 26)) +
-			m.theme.muted.Render(truncate(meta, max(contentWidth-30, 8)))
-		if i == m.opIndex {
-			line = m.selectedRow(line, contentWidth)
+		meta = truncate(meta, max(contentWidth-28-lipgloss.Width(mode)-3, 8))
+		line := titleStyle.Render(padRight(spec.Title, 26)) +
+			m.theme.muted.Render(padRight(meta, max(contentWidth-28-lipgloss.Width(mode)-3, 8))) +
+			m.theme.accent.Render(mode)
+		lines = append(lines, m.listRow(line, contentWidth, selected))
+		if i < end-1 {
+			lines = append(lines, "")
 		}
-		lines = append(lines, line)
 	}
 	if end < len(filtered) {
-		lines = append(lines, m.theme.muted.Render(fmt.Sprintf("  … %d more (ctrl+j/k)", len(filtered)-end)))
+		lines = append(lines, "", m.theme.muted.Render(fmt.Sprintf("  … %d more (ctrl+j/k)", len(filtered)-end)))
 	}
 
 	selected := filtered[clamp(m.opIndex, 0, len(filtered)-1)].Spec()
 	lines = append(lines, "")
 	if selected.Summary != "" {
-		lines = append(lines, truncate(selected.Summary, contentWidth))
+		lines = append(lines, "  "+truncate(selected.Summary, contentWidth-2))
 	}
+	lines = append(lines, "  "+m.theme.accent.Render(operationModeLabel(selected))+
+		m.theme.muted.Render(" · "+operationModeHint(selected)))
 	if params := paramsSummary(selected); params != "" {
-		lines = append(lines, m.theme.muted.Render("Parameters: "+params))
+		lines = append(lines, "  "+m.theme.muted.Render("Options: "+params))
 	}
 	return m.panel("New job", strings.Join(lines, "\n"), width, height, true)
 }
@@ -163,7 +169,7 @@ func (m App) jobsView(height int) string {
 	if width >= 96 {
 		leftW := max(width*56/100, 46)
 		rightW := width - leftW - 1
-		left := m.panel("Jobs", m.jobListContent(leftW-4), leftW, height, true)
+		left := m.panel("Jobs", m.jobListContent(leftW-4, max(height-2, 3)), leftW, height, true)
 		right := m.panel("Job detail", m.jobDetailContent(rightW-4), rightW, height, false)
 		return lipgloss.JoinHorizontal(lipgloss.Top, left, " ", right)
 	}
@@ -174,11 +180,11 @@ func (m App) jobsView(height int) string {
 	}
 	bottomH := height - topH - 1
 	return lipgloss.JoinVertical(lipgloss.Left,
-		m.panel("Jobs", m.jobListContent(width-4), width, topH, true),
+		m.panel("Jobs", m.jobListContent(width-4, max(topH-2, 3)), width, topH, true),
 		m.panel("Job detail", m.jobDetailContent(width-4), width, bottomH, false))
 }
 
-func (m App) jobListContent(width int) string {
+func (m App) jobListContent(width, height int) string {
 	jobs := m.filteredJobs()
 	if len(jobs) == 0 {
 		if m.jobQuery != "" {
@@ -193,24 +199,35 @@ func (m App) jobListContent(width int) string {
 			break
 		}
 	}
-	const visible = 10
+	reserved := 0
+	if m.jobFiltering || m.jobQuery != "" {
+		reserved = 2
+	}
+	// Each job row is followed by a blank row; reserve one row for the
+	// "N jobs total" footer when the list is clipped.
+	visible := max((max(height-reserved, 2)+1)/2, 1)
+	visible = min(visible, 12)
 	start := 0
 	if selected >= visible {
 		start = selected - visible + 1
 	}
 	var lines []string
-	if m.jobFiltering || m.jobQuery != "" {
+	if reserved > 0 {
 		suffix := "▏"
 		if !m.jobFiltering {
 			suffix = ""
 		}
-		lines = append(lines, m.theme.accent.Render("Filter  ")+m.jobQuery+suffix)
+		lines = append(lines, m.theme.accent.Render("Filter  ")+m.jobQuery+suffix, "")
 	}
-	for i := start; i < start+visible && i < len(jobs); i++ {
+	end := min(start+visible, len(jobs))
+	for i := start; i < end; i++ {
 		lines = append(lines, m.jobLine(jobs[i], width, jobs[i].ID == m.selectedJob))
+		if i < end-1 {
+			lines = append(lines, "")
+		}
 	}
-	if len(jobs) > visible {
-		lines = append(lines, m.theme.muted.Render(fmt.Sprintf("  … %d jobs total", len(jobs))))
+	if end < len(jobs) {
+		lines = append(lines, "", m.theme.muted.Render(fmt.Sprintf("  … %d of %d jobs", end, len(jobs))))
 	}
 	return strings.Join(lines, "\n")
 }
@@ -220,197 +237,410 @@ func (m App) jobDetailContent(width int) string {
 	if !ok {
 		return m.theme.muted.Render("Select a job to see its items and actions.")
 	}
+	mode := m.jobMode(job)
+	counts := job.Counts()
 	glyph, style := m.jobGlyph(job.Status)
 	lines := []string{
-		style.Render(glyph+" "+string(job.Status)) + "  " + truncate(job.Name, max(width-10, 8)),
+		"  " + style.Render(glyph+" "+string(job.Status)) + "  " +
+			m.theme.title.Render(truncate(job.Name, max(width-16, 8))),
 	}
-	metrics := m.jobMetricsLine(job)
-	if metrics != "" {
-		lines = append(lines, xansi.Truncate(metrics, width, "…"))
+
+	files := fmt.Sprintf("%d/%d", counts.Done, counts.Total)
+	if mode == core.ModeAggregate {
+		files = fmt.Sprintf("%d inputs", counts.Total)
 	}
+	summary := []string{m.theme.muted.Render("Files ") + m.theme.accent.Render(files)}
+	switch {
+	case job.Metrics.BytesIn > 0 && job.Metrics.BytesOut > 0:
+		summary = append(summary, m.theme.muted.Render("Size ")+
+			m.theme.accent.Render(humanBytes(job.Metrics.BytesIn))+
+			m.theme.muted.Render(" → ")+
+			m.theme.accent.Render(humanBytes(job.Metrics.BytesOut)))
+	case job.Metrics.BytesOut > 0:
+		summary = append(summary, m.theme.muted.Render("Downloaded ")+
+			m.theme.accent.Render(humanBytes(job.Metrics.BytesOut)))
+	}
+	if d := job.Duration(); d > 0 {
+		summary = append(summary, m.theme.muted.Render("Time ")+m.theme.accent.Render(humanDuration(d)))
+	}
+	if isCompressionJob(job) && job.Metrics.BytesIn > 0 && job.Metrics.BytesOut > 0 {
+		change := (1 - float64(job.Metrics.BytesOut)/float64(job.Metrics.BytesIn)) * 100
+		style := m.theme.success
+		label := fmt.Sprintf("space saved %.0f%%", change)
+		if change < 0 {
+			style = m.theme.warning
+			label = fmt.Sprintf("space grew %.0f%%", -change)
+		}
+		summary = append(summary, style.Render(label))
+	}
+	lines = append(lines, truncateStyled("  "+strings.Join(summary, m.theme.muted.Render("  ·  ")), width))
+	if out := m.jobOutputPath(job); out != "" {
+		lines = append(lines, "  "+m.theme.muted.Render("Output  ")+truncate(out, max(width-12, 8)))
+	}
+
+	if isActive(job.Status) {
+		lines = append(lines, "")
+		barWidth := min(max(width-24, 10), 24)
+		switch mode {
+		case core.ModeAggregate, core.ModeDirect:
+			label := "combining inputs…"
+			if mode == core.ModeDirect {
+				label = "working…"
+			}
+			lines = append(lines, "  "+m.indeterminateBar(barWidth, m.theme.accent)+" "+m.theme.muted.Render(label))
+		default:
+			lines = append(lines, "  "+m.blockBar(job.Percent(), barWidth, m.theme.accent)+
+				" "+m.theme.muted.Render(fmt.Sprintf("%d%% · %d/%d files", job.Percent(), job.Settled(), counts.Total)))
+		}
+		if stage := currentStage(job); stage != "" {
+			lines = append(lines, "  "+m.theme.muted.Render(truncate(stage, width-4)))
+		}
+	}
+
+	jobErr := job.Err
+	if jobErr == nil {
+		for _, item := range job.Items {
+			if item.Err != nil {
+				jobErr = item.Err
+				break
+			}
+		}
+	}
+	if jobErr != nil && job.Status != core.StatusCanceled {
+		lines = append(lines, "", "  "+m.theme.danger.Render("! "+truncate(jobErr.Error(), width-4)))
+		if hint := core.HintOf(jobErr); hint != "" {
+			lines = append(lines, "  "+m.theme.warning.Render(truncate(hint, width-4)))
+		}
+	}
+
+	if len(job.Steps) > 0 {
+		lines = append(lines, "", "  "+m.theme.muted.Render("Steps"))
+		titleW := max(width-18, 12)
+		for _, step := range job.Steps {
+			mark := m.theme.muted.Render("·")
+			stepStyle := m.theme.muted
+			switch step.Status {
+			case core.StatusRunning:
+				mark = m.theme.accent.Render("◐")
+				stepStyle = m.theme.accent
+			case core.StatusFailed:
+				mark = m.theme.danger.Render("✗")
+				stepStyle = m.theme.danger
+			case core.StatusDone:
+				mark = m.theme.success.Render("●")
+			}
+			line := "  " + mark + "  " + stepStyle.Render(padRight(truncate(step.Title, titleW), titleW))
+			if step.Duration > 0 {
+				line += " " + numericCell(humanDuration(step.Duration), 6)
+			}
+			lines = append(lines, line)
+		}
+	}
+
 	if meta := detectorSummary(job); meta != nil {
 		ai := metaFloat(meta, "ai_percent")
 		human := metaFloat(meta, "human_percent")
 		top := metaString(meta, "top_model")
-		confidence := metaString(meta, "confidence")
 		line := fmt.Sprintf("AI %.0f%% · human %.0f%%", ai, human)
 		if top != "" {
 			line += " · " + top
 		}
-		if confidence != "" {
-			line += " · " + confidence + " confidence"
-		}
-		lines = append(lines, m.theme.danger.Render(xansi.Truncate(line, width, "…")))
+		lines = append(lines, "", "  "+m.theme.danger.Render(truncate(line, width-4)))
 	}
-	lines = append(lines, "")
-	for _, step := range job.Steps {
-		mark := m.theme.muted.Render("·")
-		if step.Status == core.StatusRunning {
-			mark = m.theme.accent.Render("◐")
-		} else if step.Status == core.StatusFailed {
-			mark = m.theme.danger.Render("✗")
-		} else if step.Status == core.StatusDone {
-			mark = m.theme.success.Render("●")
-		}
-		lines = append(lines, fmt.Sprintf("  %s step %d/%d  %s", mark, step.Index+1, len(job.Steps), step.Title))
-	}
-	lines = append(lines, "")
+
 	items := job.Items
-	itemLimit := max(4, 12-len(job.Steps))
+	itemTitle := "Files"
+	if mode == core.ModeAggregate {
+		itemTitle = "Inputs combined"
+	}
+	itemLimit := max(3, 10-len(job.Steps))
 	if len(items) > itemLimit {
 		items = items[:itemLimit]
 	}
-	for _, item := range items {
-		lines = append(lines, m.itemLine(item, width))
+	if len(items) > 0 {
+		lines = append(lines, "", "  "+m.theme.muted.Render(itemTitle))
+		for _, item := range items {
+			lines = append(lines, m.itemLine(item, width, mode == core.ModeAggregate))
+		}
 	}
 	if len(job.Items) > len(items) {
-		lines = append(lines, m.theme.muted.Render(fmt.Sprintf("  … %d more items", len(job.Items)-len(items))))
+		lines = append(lines, "  "+m.theme.muted.Render(fmt.Sprintf("… %d more", len(job.Items)-len(items))))
 	}
+
 	if len(job.Aggregate) > 0 {
-		lines = append(lines, "", m.theme.accent.Render("Aggregate output"))
+		lines = append(lines, "", "  "+m.theme.accent.Render("Output"))
 		for _, artifact := range job.Aggregate {
-			lines = append(lines, "  "+m.theme.success.Render("✓ ")+truncate(artifact.Name(), max(width-4, 8)))
-			lines = append(lines, m.theme.muted.Render("    "+truncate(artifact.Path, max(width-6, 8))))
+			lines = append(lines, "  "+m.theme.success.Render("✓ ")+truncate(artifact.Name(), max(width-6, 8)))
+			lines = append(lines, "    "+m.theme.muted.Render(truncate(artifact.Path, max(width-6, 8))))
+			lines = append(lines, "    "+m.theme.muted.Render(humanBytes(artifact.Size)))
 		}
 	}
-	if job.Err != nil && job.Status != core.StatusCanceled {
-		line := job.Err.Error()
-		if hint := core.HintOf(job.Err); hint != "" {
-			line = hint
-		}
-		lines = append(lines, "", m.theme.danger.Render(truncate("! "+line, width)))
+
+	hint := "enter log · r rerun · R retry"
+	if width >= 52 {
+		hint += " · o reveal"
 	}
-	hint := "l log · R retry · r rerun · o reveal"
 	if detectorSummary(job) != nil {
-		hint = "enter AI report · " + hint
-	} else {
-		hint = "enter log · " + hint
+		hint = "enter AI report · l log · R retry"
 	}
 	if job.Historical {
 		hint = "history · " + hint
 	}
-	lines = append(lines, "", m.theme.muted.Render(hint))
+	lines = append(lines, "", "  "+m.theme.muted.Render(truncate(hint, width-2)))
 	return strings.Join(lines, "\n")
 }
 
-func (m App) jobLine(job runner.JobView, width int, selected bool) string {
-	marker := "  "
-	if selected {
-		marker = m.theme.accent.Render("▸ ")
+func (m App) jobOutputPath(job runner.JobView) string {
+	if len(job.Aggregate) > 0 && job.Aggregate[0].Path != "" {
+		return filepath.Dir(job.Aggregate[0].Path)
 	}
-	glyph, glyphStyle := m.jobGlyph(job.Status)
-
-	counts := job.Counts()
-	percent := job.Percent()
-	var stats string
-	switch job.Status {
-	case core.StatusQueued:
-		stats = fmt.Sprintf("  0%% · %d queued", counts.Total)
-	case core.StatusRunning, core.StatusCancelling:
-		stats = fmt.Sprintf("%3d%%", percent)
-		if counts.Failed > 0 {
-			stats += fmt.Sprintf(" · %d failed", counts.Failed)
-		}
-		if counts.Canceled > 0 {
-			stats += fmt.Sprintf(" · %d cancelled", counts.Canceled)
-		}
-		if counts.Active > 0 {
-			stats += fmt.Sprintf(" · %d active", counts.Active)
-		}
-	default:
-		stats = fmt.Sprintf("%3d%% · %d/%d", percent, job.Settled(), counts.Total)
-		if counts.Failed > 0 {
-			stats += fmt.Sprintf(" · %d failed", counts.Failed)
-		}
-		if counts.Canceled > 0 {
-			stats += fmt.Sprintf(" · %d cancelled", counts.Canceled)
-		}
+	if job.Target.BesideInput {
+		return "beside each input"
 	}
-	if d := job.Duration(); d > 0 {
-		stats += " · " + humanDuration(d)
-	}
-	if job.Historical {
-		stats += " · history"
-	}
-
-	statsWidth := lipgloss.Width(stats)
-	barWidth := clamp((width-6-statsWidth)/2, 10, 64)
-	nameWidth := max(width-6-barWidth-statsWidth, 8)
-	name := padRight(truncate(job.Name, nameWidth), nameWidth)
-	fill := m.theme.accent
-	switch job.Status {
-	case core.StatusDone:
-		fill = m.theme.success
-	case core.StatusFailed:
-		fill = m.theme.danger
-	case core.StatusCanceled:
-		fill = m.theme.muted
-	}
-	bar := m.progressBarStyle(percent, 100, barWidth, fill)
-	line := marker + glyphStyle.Render(glyph) + " " + name + " " + bar + " " + m.theme.muted.Render(stats)
-	if selected {
-		line = m.selectedRow(line, width)
-	}
-	return line
+	return job.Target.Dir
 }
 
-func (m App) jobMetricsLine(job runner.JobView) string {
-	var parts []string
-	if job.Metrics.BytesIn > 0 && job.Metrics.BytesOut > 0 {
-		parts = append(parts, m.theme.muted.Render("size ")+
-			m.theme.accent.Render(humanBytes(job.Metrics.BytesIn))+
-			m.theme.muted.Render(" → ")+
-			m.theme.accent.Render(humanBytes(job.Metrics.BytesOut)))
-		if isCompressionJob(job) {
-			change := (1 - float64(job.Metrics.BytesOut)/float64(job.Metrics.BytesIn)) * 100
-			if change >= 1 {
-				parts = append(parts, m.theme.success.Render(fmt.Sprintf("space saved %.0f%%", change)))
-			} else if change <= -1 {
-				parts = append(parts, m.theme.warning.Render(fmt.Sprintf("space grew %.0f%%", -change)))
+func currentStage(job runner.JobView) string {
+	for _, item := range job.Items {
+		if item.Status == core.ItemStatusRunning && item.Stage != "" {
+			return item.Stage
+		}
+	}
+	return ""
+}
+
+func (m App) jobLine(job runner.JobView, width int, selected bool) string {
+	glyph, glyphStyle := m.jobGlyph(job.Status)
+	mode := m.jobMode(job)
+	result := m.jobResult(job, mode)
+
+	duration := ""
+	if d := job.Duration(); d > 0 {
+		duration = humanDuration(d)
+	}
+	age := ""
+	if job.Historical {
+		age = "history"
+	} else if !job.QueuedAt.IsZero() {
+		age = humanAge(job.QueuedAt)
+	}
+
+	// Fixed columns keep names, results, durations, and ages aligned. The
+	// age column is the first to go when the list gets narrow.
+	resultW, durW, ageW := 18, 7, 0
+	if width >= 68 {
+		ageW = 8
+	}
+	nameW := width - 7 - resultW - durW - ageW
+	if nameW < 12 {
+		durW = 0
+		ageW = 0
+		nameW = width - 7 - resultW
+	}
+	if nameW < 10 {
+		resultW = 14
+		nameW = width - 7 - resultW
+	}
+	if nameW < 8 {
+		resultW = 10
+		nameW = width - 7 - resultW
+	}
+	nameW = max(nameW, 6)
+
+	var b strings.Builder
+	b.WriteString(glyphStyle.Render(glyph))
+	b.WriteString(" ")
+	b.WriteString(padRight(truncate(job.Name, nameW), nameW))
+	b.WriteString(" ")
+	b.WriteString(padStyled(result, resultW))
+	if durW > 0 {
+		b.WriteString(" ")
+		b.WriteString(numericCell(duration, durW))
+	}
+	if ageW > 0 {
+		b.WriteString(" ")
+		b.WriteString(numericCell(age, ageW))
+	}
+	return m.listRow(b.String(), width, selected)
+}
+
+func (m App) jobMode(job runner.JobView) core.Mode {
+	if len(job.Aggregate) > 0 {
+		return core.ModeAggregate
+	}
+	ops := make([]string, 0, len(job.Pipeline.Steps)+len(job.Steps))
+	for _, step := range job.Pipeline.Steps {
+		ops = append(ops, step.Op)
+	}
+	if len(ops) == 0 {
+		for _, step := range job.Steps {
+			ops = append(ops, step.Op)
+		}
+	}
+	if m.opts.Operations != nil {
+		for _, id := range ops {
+			op, ok := m.opts.Operations.Get(id)
+			if !ok {
+				continue
+			}
+			if op.Spec().Aggregate() {
+				return core.ModeAggregate
+			}
+			if op.Spec().Direct() {
+				return core.ModeDirect
 			}
 		}
-	} else if job.Metrics.BytesOut > 0 {
-		parts = append(parts, m.theme.muted.Render("downloaded ")+m.theme.accent.Render(humanBytes(job.Metrics.BytesOut)))
 	}
-	if len(job.Samples) > 1 {
-		parts = append(parts, m.theme.muted.Render("progress ")+m.sparklineStyled(job.Samples, 16))
-	}
-	if d := job.Duration(); d > 0 {
-		parts = append(parts, m.theme.muted.Render(humanDuration(d)))
-	}
-	return strings.Join(parts, m.theme.muted.Render("  ·  "))
+	return core.ModePerItem
 }
 
-func (m App) itemLine(item runner.ItemView, width int) string {
-	glyph, style := m.itemGlyph(item.Status)
-	nameWidth := clamp(width-20, 12, 28)
-	name := truncate(item.Input.Name(), nameWidth)
-	detail := item.Stage
-	switch item.Status {
-	case core.ItemStatusDone:
-		detail = "done"
-	case core.ItemStatusSkipped:
-		detail = "skipped"
-	case core.ItemStatusCanceled:
-		detail = "cancelled"
-	case core.ItemStatusPending:
-		detail = "pending"
-	case core.ItemStatusFailed:
-		if item.Err != nil {
-			detail = item.Err.Error()
+func (m App) jobResult(job runner.JobView, mode core.Mode) string {
+	counts := job.Counts()
+	percent := job.Percent()
+	switch job.Status {
+	case core.StatusQueued:
+		return fmt.Sprintf("queued · %d files", counts.Total)
+	case core.StatusRunning, core.StatusCancelling:
+		switch mode {
+		case core.ModeAggregate:
+			return m.indeterminateBar(6, m.theme.accent) + " combining"
+		case core.ModeDirect:
+			return m.indeterminateBar(6, m.theme.accent) + " working"
+		default:
+			return m.blockBar(percent, 6, m.theme.accent) + fmt.Sprintf(" %d%% · %d/%d", percent, job.Settled(), counts.Total)
+		}
+	case core.StatusDone:
+		if mode == core.ModeAggregate {
+			return fmt.Sprintf("%d → 1 file", counts.Total)
+		}
+		return fmt.Sprintf("done · %d/%d", counts.Done, counts.Total)
+	case core.StatusPartial:
+		return fmt.Sprintf("%d/%d · %d failed", job.Settled(), counts.Total, counts.Failed)
+	case core.StatusFailed:
+		if counts.Failed > 0 {
+			return fmt.Sprintf("failed · %d/%d", job.Settled(), counts.Total)
+		}
+		return "failed"
+	case core.StatusCanceled:
+		return "canceled"
+	default:
+		return string(job.Status)
+	}
+}
+
+func humanAge(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "now"
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	case d < 7*24*time.Hour:
+		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
+	default:
+		return t.Format("Jan 2")
+	}
+}
+
+func (m App) blockBar(percent, width int, style lipgloss.Style) string {
+	if width < 1 {
+		return ""
+	}
+	percent = clamp(percent, 0, 100)
+	filled := (percent*width + 50) / 100
+	return style.Render(strings.Repeat("█", filled)) +
+		m.theme.border.Render(strings.Repeat("░", width-filled))
+}
+
+// indeterminateBar gives aggregate and direct stages something to show while
+// the exact fraction is unknown. It relies on job progress events to repaint.
+func (m App) indeterminateBar(width int, style lipgloss.Style) string {
+	if width < 1 {
+		return ""
+	}
+	pos := int(time.Now().UnixMilli()/140)%(width+3) - 3
+	var b strings.Builder
+	for i := 0; i < width; i++ {
+		if i >= pos && i < pos+3 {
+			b.WriteString(style.Render("█"))
+		} else {
+			b.WriteString(m.theme.border.Render("░"))
 		}
 	}
-	if detail == "" {
-		detail = string(item.Status)
+	return b.String()
+}
+
+func (m App) itemLine(item runner.ItemView, width int, aggregate bool) string {
+	glyph, style := m.itemGlyph(item.Status)
+	status := itemStatusLabel(item.Status)
+	detail := ""
+
+	if aggregate {
+		status = "input"
+		detail = humanBytes(item.Input.Size)
+	} else {
+		switch item.Status {
+		case core.ItemStatusDone:
+			switch {
+			case len(item.Outputs) > 0 && item.Outputs[0].Size > 0:
+				detail = humanBytes(item.Outputs[0].Size)
+			case item.Input.Size > 0:
+				detail = humanBytes(item.Input.Size)
+			default:
+				detail = "—"
+			}
+		case core.ItemStatusSkipped:
+			detail = "skipped"
+		case core.ItemStatusCanceled:
+			detail = "canceled"
+		case core.ItemStatusPending:
+			detail = "pending"
+		case core.ItemStatusRunning:
+			detail = item.Stage
+			if item.Total > 0 {
+				detail += fmt.Sprintf(" %d%%", min(item.Done*100/item.Total, 100))
+			}
+		case core.ItemStatusFailed:
+			if item.Err != nil {
+				detail = item.Err.Error()
+			}
+		}
+		if detail == "" {
+			detail = "—"
+		}
 	}
-	progress := ""
-	if item.Total > 0 {
-		progress = fmt.Sprintf(" %d%%", min(item.Done*100/item.Total, 100))
-	}
-	detailWidth := max(width-2-1-1-nameWidth-1-len(progress), 8)
-	line := "  " + style.Render(glyph) + " " + padRight(name, nameWidth) + " " +
-		m.theme.muted.Render(padRight(truncate(detail, detailWidth), detailWidth)) + progress
+
+	nameW := clamp(width-24, 12, 28)
+	statusW := 9
+	const glyphW = 4 // two spaces + glyph + trailing space
+	detailW := max(width-glyphW-nameW-1-statusW-1, 8)
+	line := "  " + style.Render(glyph) + " " +
+		padRight(truncate(item.Input.Name(), nameW), nameW) + " " +
+		m.theme.muted.Render(padRight(truncate(status, statusW), statusW)) + " " +
+		m.theme.muted.Render(truncate(detail, detailW))
 	return xansi.Truncate(line, width, "…")
+}
+
+func itemStatusLabel(status core.ItemStatus) string {
+	switch status {
+	case core.ItemStatusDone:
+		return "done"
+	case core.ItemStatusRunning:
+		return "running"
+	case core.ItemStatusFailed:
+		return "failed"
+	case core.ItemStatusCanceled:
+		return "canceled"
+	case core.ItemStatusSkipped:
+		return "skipped"
+	default:
+		return "pending"
+	}
 }
 
 func (m App) jobGlyph(status core.Status) (string, lipgloss.Style) {
@@ -472,6 +702,28 @@ func (m App) confirmView(active int) string {
 		m.theme.muted.Render("esc / n  stay"),
 	}
 	return m.theme.card.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
+}
+
+func operationModeLabel(spec core.Spec) string {
+	switch {
+	case spec.Aggregate():
+		return "combine"
+	case spec.Direct():
+		return "in place"
+	default:
+		return "per file"
+	}
+}
+
+func operationModeHint(spec core.Spec) string {
+	switch {
+	case spec.Aggregate():
+		return "Combines every selected input into one output."
+	case spec.Direct():
+		return "Updates each input file directly."
+	default:
+		return "Runs once per input; each file gets its own output."
+	}
 }
 
 func acceptsSummary(spec core.Spec) string {
@@ -616,7 +868,7 @@ func (m App) enginesView(height int) string {
 	b.WriteString("\n")
 	b.WriteString(m.theme.border.Render(strings.Repeat("─", contentWidth)))
 	b.WriteString("\n")
-	for _, info := range infos {
+	for i, info := range infos {
 		status := m.theme.success.Render(padRight("ready", statusW))
 		version := info.Version
 		detail := info.Detail
@@ -641,9 +893,12 @@ func (m App) enginesView(height int) string {
 			b.WriteString("  " + m.theme.muted.Render(truncate(info.Path, contentWidth-2)))
 			b.WriteString("\n")
 		}
+		if i < len(infos)-1 {
+			b.WriteString("\n")
+		}
 	}
 	b.WriteString("\n")
-	b.WriteString(m.theme.muted.Render("/ filter · r rescan · esc back"))
+	b.WriteString(m.theme.muted.Render("/ filter · i install engines · r rescan · esc back"))
 	return m.panel("Engines", b.String(), width, height, true)
 }
 
@@ -656,45 +911,4 @@ func isCompressionJob(job runner.JobView) bool {
 	}
 	name := strings.ToLower(job.Name)
 	return strings.Contains(name, "compress") || strings.Contains(name, "archive")
-}
-
-func (m App) sparklineStyled(samples []int, width int) string {
-	glyphs := []rune("▁▂▃▄▅▆▇█")
-	if len(samples) == 0 || width <= 0 {
-		return ""
-	}
-	if len(samples) > width {
-		samples = samples[len(samples)-width:]
-	}
-	var b strings.Builder
-	for _, value := range samples {
-		value = clamp(value, 0, 100)
-		index := value * (len(glyphs) - 1) / 100
-		style := m.theme.muted
-		switch {
-		case value >= 66:
-			style = m.theme.success
-		case value >= 33:
-			style = m.theme.accent
-		}
-		b.WriteString(style.Render(string(glyphs[index])))
-	}
-	return b.String()
-}
-
-func sparkline(samples []int, width int) string {
-	glyphs := []rune("▁▂▃▄▅▆▇█")
-	if len(samples) == 0 || width <= 0 {
-		return ""
-	}
-	if len(samples) > width {
-		samples = samples[len(samples)-width:]
-	}
-	var b strings.Builder
-	for _, value := range samples {
-		value = clamp(value, 0, 100)
-		index := value * (len(glyphs) - 1) / 100
-		b.WriteRune(glyphs[index])
-	}
-	return b.String()
 }

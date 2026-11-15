@@ -859,6 +859,9 @@ type engineJSON struct {
 }
 
 func runEngines(args []string) int {
+	if len(args) > 0 && args[0] == "install" {
+		return runEnginesInstall(args[1:])
+	}
 	fs := flag.NewFlagSet("engines", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	asJSON := fs.Bool("json", false, "write machine-readable JSON")
@@ -916,6 +919,46 @@ func runEngines(args []string) int {
 			detail = info.Path
 		}
 		fmt.Printf("%s %-12s %s\n", mark, info.ID, detail)
+	}
+	return 0
+}
+
+func runEnginesInstall(args []string) int {
+	fs := flag.NewFlagSet("engines install", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	all := fs.Bool("all", false, "preselect every missing engine with an automatic installer")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
+	}
+	if fs.NArg() > 0 {
+		fmt.Fprintf(os.Stderr, "wb engines install: unexpected argument %q\n", fs.Arg(0))
+		return 2
+	}
+
+	a := app.Boot()
+	for _, warning := range a.Warnings {
+		fmt.Fprintf(os.Stderr, "warning: %s\n", warning)
+	}
+	model := tui.New(tui.Options{
+		Config:             a.Config,
+		Paths:              a.Paths,
+		Registry:           a.Registry,
+		Operations:         a.Operations,
+		Pipelines:          a.Pipelines,
+		History:            a.History,
+		State:              a.State,
+		Saved:              a.Saved,
+		FirstRun:           false,
+		StartInstaller:     true,
+		InstallerAll:       *all,
+		ExitAfterInstaller: true,
+	})
+	if _, err := tea.NewProgram(model).Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "wb engines install: %v\n", err)
+		return 1
 	}
 	return 0
 }
@@ -1123,7 +1166,10 @@ _wb() {
     history)
       COMPREPLY=( $(compgen -W "list clear --json" -- "$cur") )
       ;;
-    ops|engines|doctor)
+    engines)
+      COMPREPLY=( $(compgen -W "install --json --all" -- "$cur") )
+      ;;
+    ops|doctor)
       COMPREPLY=( $(compgen -W "--json" -- "$cur") )
       ;;
     completion)
@@ -1149,7 +1195,8 @@ _wb() {
     pipeline) compadd -- list export import --json --out --name ;;
     serve) compadd -- --addr --token ;;
     history) compadd -- list clear --json ;;
-    ops|engines|doctor) compadd -- --json ;;
+    engines) compadd -- install --json --all ;;
+    ops|doctor) compadd -- --json ;;
     completion) compadd -- bash zsh fish ;;
   esac
 }
@@ -1160,7 +1207,7 @@ compdef _wb wb
 const fishCompletion = `complete -c wb -f -n '__fish_use_subcommand' -a run -d 'Run an operation or saved pipeline'
 complete -c wb -f -n '__fish_use_subcommand' -a watch -d 'Watch a folder and run a pipeline'
 complete -c wb -f -n '__fish_use_subcommand' -a ops -d 'List operations'
-complete -c wb -f -n '__fish_use_subcommand' -a engines -d 'Probe engines'
+complete -c wb -f -n '__fish_use_subcommand' -a engines -d 'Probe or install engines'
 complete -c wb -f -n '__fish_use_subcommand' -a pipeline -d 'Manage saved pipelines'
 complete -c wb -f -n '__fish_use_subcommand' -a serve -d 'Start the local API'
 complete -c wb -f -n '__fish_use_subcommand' -a doctor -d 'Check engines and configuration'
@@ -1185,6 +1232,8 @@ complete -c wb -n '__fish_seen_subcommand_from watch' -l settle -r
 complete -c wb -n '__fish_seen_subcommand_from watch' -l output -r
 complete -c wb -n '__fish_seen_subcommand_from watch' -l once
 complete -c wb -n '__fish_seen_subcommand_from ops engines doctor' -l json
+complete -c wb -n '__fish_seen_subcommand_from engines' -a install -d 'Install missing engines'
+complete -c wb -n '__fish_seen_subcommand_from engines install' -l all
 complete -c wb -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish'
 `
 
@@ -1239,6 +1288,7 @@ Usage:
   wb watch        watch a folder and run a saved pipeline on changes
   wb ops          list operations (--json)
   wb engines      probe engines (--json)
+  wb engines install  pick and install missing engines (--all)
   wb pipeline     list, export, or import saved pipelines
   wb serve        start the local agent API (default 127.0.0.1:8765)
   wb mcp          run the Model Context Protocol server on stdio
@@ -1262,6 +1312,9 @@ Run options:
   --output        output directory; defaults to the configured output dir
   --param         operation parameter key=value (repeatable)
   --dry-run       print the resolved plan without running
+
+Engines install options:
+  --all           preselect every missing engine with an automatic installer
 
 Watch options:
   --pipeline      saved pipeline name (required)

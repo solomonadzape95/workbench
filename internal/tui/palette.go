@@ -180,6 +180,7 @@ func (m App) buildPalette(target paletteTarget) *palette {
 		{"aliases", "Aliases", "configured input shortcuts"},
 		{"pipelines", "Pipelines", "saved pipeline library"},
 		{"engines", "Engines", "tool availability and install hints"},
+		{"install-engines", "Install engines", "download missing ffmpeg, whisper, OCR, and friends"},
 		{"theme", "Change theme", "eight built-in palettes with previews"},
 		{"settings", "Settings", "output folder, theme, max jobs, config"},
 		{"stats", "Statistics", "saved bytes and job totals"},
@@ -580,11 +581,14 @@ func (m App) selectPaletteItem() (tea.Model, tea.Cmd) {
 			m.screen = screenAliases
 		case "engines":
 			m.screen = screenEngines
+		case "install-engines":
+			return m.openEngineInstaller(m.screen, true)
 		case "theme":
 			return m.openThemePicker(m.screen)
 		case "settings":
 			return m.openSettings(m.screen)
 		case "stats":
+			m.statsScroll = 0
 			m.screen = screenStats
 		case "editor":
 			m.prompt = m.newFilePrompt()
@@ -711,10 +715,6 @@ func (m App) paletteBody(width, maxRows int) string {
 	}
 	for i := start; i < start+maxRows && i < len(p.items); i++ {
 		item := p.items[i]
-		marker := "  "
-		if i == p.cursor {
-			marker = m.theme.accent.Render("▸ ")
-		}
 		titleStyle := lipgloss.NewStyle()
 		subtitle := item.subtitle
 		subtitleStyle := m.theme.muted
@@ -723,12 +723,9 @@ func (m App) paletteBody(width, maxRows int) string {
 			subtitle = item.disabledHint
 			subtitleStyle = m.theme.warning
 		}
-		line := marker + titleStyle.Render(padRight(truncate(item.title, 30), 30)) +
-			"  " + subtitleStyle.Render(truncate(subtitle, max(inner-34, 8)))
-		if i == p.cursor {
-			line = m.selectedRow(line, inner)
-		}
-		b.WriteString(line)
+		line := titleStyle.Render(padRight(truncate(item.title, 30), 30)) +
+			"  " + subtitleStyle.Render(truncate(subtitle, max(inner-36, 8)))
+		b.WriteString(m.listRow(line, inner, i == p.cursor))
 		b.WriteString("\n")
 	}
 

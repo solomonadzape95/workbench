@@ -49,6 +49,8 @@ const Header = `# Workbench configuration.
 # [opencode]
 # url = "http://127.0.0.1:4096"
 # password = "..."  # prefer OPENCODE_SERVICE_PASSWORD in your environment
+# allow_paid = false  # true lets "auto" consider paid models from connected providers
+# allowed_providers = ["anthropic", "openai"]  # optional; empty means all
 `
 
 // Config is the on-disk configuration. Every field has a default, so a
@@ -74,10 +76,11 @@ type Logs struct {
 }
 
 type General struct {
-	Theme     string `toml:"theme"`
-	ThemeName string `toml:"theme_name,omitempty"`
-	Notify    bool   `toml:"notify"`
-	MaxJobs   int    `toml:"max_jobs"`
+	Theme          string `toml:"theme"`
+	ThemeName      string `toml:"theme_name,omitempty"`
+	Notify         bool   `toml:"notify"`
+	MaxJobs        int    `toml:"max_jobs"`
+	ConfirmDiscard bool   `toml:"confirm_discard"`
 }
 
 type Output struct {
@@ -98,6 +101,14 @@ type Engines struct {
 type OpenCode struct {
 	URL      string `toml:"url,omitempty"`
 	Password string `toml:"password,omitempty"`
+
+	// AllowPaid lets "auto" fall back to paid models from providers connected
+	// to OpenCode. An explicit provider/model can always be used; this only
+	// affects automatic model selection.
+	AllowPaid bool `toml:"allow_paid,omitempty"`
+	// AllowedProviders narrows the model catalog when non-empty. It applies to
+	// both free and paid discovery; an explicit provider/model bypasses it.
+	AllowedProviders []string `toml:"allowed_providers,omitempty"`
 }
 
 // DetectConfig controls the optional external log-probability scorer. The
@@ -121,10 +132,11 @@ type Alias struct {
 func Defaults() Config {
 	return Config{
 		General: General{
-			Theme:     ThemeAuto,
-			ThemeName: "opencode",
-			Notify:    true,
-			MaxJobs:   4,
+			Theme:          ThemeAuto,
+			ThemeName:      "opencode",
+			Notify:         true,
+			MaxJobs:        4,
+			ConfirmDiscard: true,
 		},
 		Output: Output{
 			Dir:       "~/Workbench/{date}",
@@ -285,9 +297,24 @@ func (c *Config) normalize() []string {
 	}
 	c.OpenCode.URL = strings.TrimSpace(c.OpenCode.URL)
 	c.OpenCode.Password = strings.TrimSpace(c.OpenCode.Password)
+	c.OpenCode.AllowedProviders = normalizeProviders(c.OpenCode.AllowedProviders)
 
 	c.Aliases = normalizeAliases(c.Aliases, warn)
 	return warnings
+}
+
+func normalizeProviders(in []string) []string {
+	out := make([]string, 0, len(in))
+	seen := map[string]bool{}
+	for _, value := range in {
+		value = strings.ToLower(strings.TrimSpace(value))
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
+	}
+	return out
 }
 
 func normalizeAliases(in []Alias, warn func(string, ...any)) []Alias {

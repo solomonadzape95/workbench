@@ -219,3 +219,55 @@ func TestIsAuthError(t *testing.T) {
 		t.Error("429 should not be an auth error")
 	}
 }
+
+func TestModelsIncludesPaidWhenAllowed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": []map[string]any{
+			{
+				"id": "paid", "providerID": "anthropic", "name": "Claude",
+				"cost":         []map[string]any{{"input": 3, "output": 15, "cache": map[string]any{"read": 0, "write": 0}}},
+				"capabilities": map[string]any{"output": []string{"text"}},
+				"status":       "active", "enabled": true,
+				"limit": map[string]any{"context": 200000, "output": 8000},
+			},
+			{
+				"id": "free", "providerID": "nvidia", "name": "Free",
+				"cost":         []map[string]any{{"input": 0, "output": 0, "cache": map[string]any{"read": 0, "write": 0}}},
+				"capabilities": map[string]any{"output": []string{"text"}},
+				"status":       "active", "enabled": true,
+				"limit": map[string]any{"context": 100000, "output": 8000},
+			},
+		}})
+	}))
+	defer srv.Close()
+
+	client := &Client{ServerURL: srv.URL, Password: "secret", HTTP: srv.Client(), AllowPaid: true}
+	models, err := client.Models(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := map[string]bool{}
+	for _, model := range models {
+		names[model.String()] = true
+	}
+	if !names["anthropic/paid"] || !names["nvidia/free"] {
+		t.Fatalf("models = %+v", models)
+	}
+
+	free, err := client.FreeModels(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(free) != 1 || free[0].String() != "nvidia/free" {
+		t.Fatalf("free models = %+v", free)
+	}
+
+	client.AllowedProviders = []string{"nvidia"}
+	filtered, err := client.Models(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(filtered) != 1 || filtered[0].ProviderID != "nvidia" {
+		t.Fatalf("filtered models = %+v", filtered)
+	}
+}

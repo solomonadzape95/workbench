@@ -187,3 +187,11 @@ cp "$input" "$out/htdemucs/song/no_vocals.wav"
 		t.Fatalf("artifacts = %+v", result.Artifacts)
 	}
 }
+
+func TestStemOperationsDefaultToMP3(t *testing.T) {
+	for _, spec := range []core.Spec{extractVocalsSpec, extractInstrumentalSpec} {
+		if got := spec.DefaultValues().String("format"); got != "mp3" {
+			t.Errorf("%s default format = %q, want mp3", spec.ID, got)
+		}
+	}
+}

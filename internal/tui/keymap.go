@@ -12,6 +12,8 @@ const (
 	ctxGlobal         keyContext = "global"
 	ctxHome           keyContext = "home"
 	ctxOperations     keyContext = "operations"
+	ctxComposeInput   keyContext = "compose-input"
+	ctxComposeOutput  keyContext = "compose-output"
 	ctxCompose        keyContext = "compose"
 	ctxComposeStep    keyContext = "compose-step"
 	ctxJobs           keyContext = "jobs"
@@ -22,11 +24,13 @@ const (
 	ctxPreview        keyContext = "preview"
 	ctxAliases        keyContext = "aliases"
 	ctxEngines        keyContext = "engines"
+	ctxEngineInstall  keyContext = "engine-install"
 	ctxSettings       keyContext = "settings"
 	ctxStats          keyContext = "statistics"
 	ctxThemes         keyContext = "themes"
 	ctxEditor         keyContext = "editor"
 	ctxPalette        keyContext = "palette"
+	ctxPicker         keyContext = "picker"
 	ctxPrompt         keyContext = "prompt"
 	ctxOnboarding     keyContext = "onboarding"
 	ctxConfirm        keyContext = "confirm"
@@ -44,17 +48,20 @@ type helpSection struct {
 }
 
 var helpSectionOrder = []keyContext{
-	ctxGlobal, ctxHome, ctxOperations, ctxCompose, ctxComposeStep, ctxJobs,
+	ctxGlobal, ctxHome, ctxOperations, ctxComposeInput, ctxComposeOutput, ctxCompose,
+	ctxComposeStep, ctxJobs,
 	ctxReview, ctxJobLog, ctxDetector, ctxDetectorReport, ctxPreview, ctxAliases,
-	ctxEngines, ctxSettings, ctxStats, ctxThemes, ctxEditor, ctxPalette, ctxPrompt,
-	ctxOnboarding, ctxConfirm, ctxHelp,
+	ctxEngines, ctxEngineInstall, ctxSettings, ctxStats, ctxThemes, ctxEditor,
+	ctxPalette, ctxPicker, ctxPrompt, ctxOnboarding, ctxConfirm, ctxHelp,
 }
 
 var sectionTitles = map[keyContext]string{
 	ctxGlobal:         "Global",
 	ctxHome:           "Home",
 	ctxOperations:     "New job search",
-	ctxCompose:        "Pipeline",
+	ctxComposeInput:   "Pipeline · input",
+	ctxComposeOutput:  "Pipeline · output",
+	ctxCompose:        "Pipeline · steps",
 	ctxComposeStep:    "Step editor",
 	ctxJobs:           "Jobs",
 	ctxReview:         "Review outputs",
@@ -64,11 +71,13 @@ var sectionTitles = map[keyContext]string{
 	ctxPreview:        "Preview",
 	ctxAliases:        "Aliases",
 	ctxEngines:        "Engines",
+	ctxEngineInstall:  "Install engines",
 	ctxSettings:       "Settings",
 	ctxStats:          "Statistics",
 	ctxThemes:         "Themes",
 	ctxEditor:         "Editor",
 	ctxPalette:        "Command palette",
+	ctxPicker:         "File picker",
 	ctxPrompt:         "Prompt",
 	ctxOnboarding:     "Setup",
 	ctxConfirm:        "Confirm",
@@ -87,56 +96,70 @@ var hints = map[keyContext][]keyHint{
 		{"ctrl+c", "quit / interrupt"},
 	},
 	ctxHome: {
+		{"ctrl+p", "palette"},
+		{"t", "theme"},
+		{"q", "quit"},
 		{"n", "new job"},
 		{"a", "AI detector"},
 		{"e", "editor"},
 		{"j", "jobs"},
-		{"s", "settings"},
-		{"t", "theme"},
 		{"v", "statistics"},
+		{"s", "settings"},
+		{"?", "help"},
 	},
 	ctxOperations: {
 		{"type", "filter"},
-		{"ctrl+j/k", "move"},
 		{"enter", "open"},
 		{"esc", "clear / back"},
+		{"ctrl+j/k", "move"},
+	},
+	ctxComposeInput: {
+		{"enter", "continue"},
+		{"tab", "complete"},
+		{"esc", "back"},
+		{"ctrl+f", "pick files"},
+	},
+	ctxComposeOutput: {
+		{"enter", "continue"},
+		{"tab", "beside input"},
+		{"esc", "back"},
 	},
 	ctxCompose: {
-		{"tab", "focus / complete"},
+		{"enter", "edit step"},
+		{"n", "add step"},
 		{"ctrl+r", "run"},
 		{"ctrl+s", "save"},
 		{"ctrl+o", "preview"},
-		{"n", "add step"},
 		{"d", "delete step"},
 		{"alt+↑/↓", "reorder"},
 	},
 	ctxComposeStep: {
 		{"tab", "field"},
-		{"←/→", "adjust / move"},
-		{"space", "toggle"},
 		{"enter", "save step"},
 		{"esc", "cancel"},
+		{"←/→", "adjust / move"},
+		{"space", "toggle"},
 	},
 	ctxJobs: {
-		{"u", "undo output"},
-		{"a", "review outputs"},
-		{"j/k", "move"},
 		{"enter", "open"},
+		{"/", "filter"},
 		{"l", "logs"},
+		{"j/k", "move"},
+		{"a", "review outputs"},
+		{"u", "undo output"},
 		{"r", "rerun"},
 		{"R", "retry failed"},
 		{"o", "reveal"},
 		{"c", "copy"},
 		{"x", "cancel"},
-		{"/", "filter"},
 		{"s", "sort"},
 	},
 	ctxReview: {
 		{"space", "toggle"},
-		{"a", "keep all"},
-		{"d", "reject"},
 		{"enter", "apply"},
 		{"esc", "cancel"},
+		{"a", "keep all"},
+		{"d", "reject"},
 	},
 	ctxJobLog: {
 		{"j/k", "scroll"},
@@ -170,10 +193,19 @@ var hints = map[keyContext][]keyHint{
 	},
 	ctxEngines: {
 		{"/", "filter"},
+		{"i", "install engines"},
 		{"r", "rescan"},
 		{"esc", "back"},
 	},
+	ctxEngineInstall: {
+		{"space", "toggle"},
+		{"a", "select all missing"},
+		{"enter", "install"},
+		{"esc", "close"},
+		{"x", "cancel"},
+	},
 	ctxStats: {
+		{"j/k", "scroll"},
 		{"esc", "back"},
 	},
 	ctxSettings: {
@@ -203,6 +235,13 @@ var hints = map[keyContext][]keyHint{
 		{"ctrl+d", "delete pipeline"},
 		{"esc", "close"},
 	},
+	ctxPicker: {
+		{"space", "pick"},
+		{"ctrl+s", "use files"},
+		{"enter", "open / pick"},
+		{"→", "open folder"},
+		{"esc", "cancel"},
+	},
 	ctxPrompt: {
 		{"tab", "complete"},
 		{"enter", "submit"},
@@ -210,6 +249,7 @@ var hints = map[keyContext][]keyHint{
 	},
 	ctxOnboarding: {
 		{"space", "toggle"},
+		{"i", "install engines"},
 		{"enter", "finish"},
 		{"esc", "skip"},
 		{"q", "quit"},
@@ -226,6 +266,8 @@ var hints = map[keyContext][]keyHint{
 
 func (m App) activeContext() keyContext {
 	switch {
+	case m.installer != nil:
+		return ctxEngineInstall
 	case m.confirmQuit:
 		return ctxConfirm
 	case m.confirm != nil:
@@ -236,6 +278,8 @@ func (m App) activeContext() keyContext {
 		return ctxJobLog
 	case m.palette != nil:
 		return ctxPalette
+	case m.picker != nil:
+		return ctxPicker
 	case m.showHelp:
 		return ctxHelp
 	}
@@ -251,8 +295,16 @@ func (m App) activeContext() keyContext {
 	case screenOperations:
 		return ctxOperations
 	case screenCompose:
-		if m.compose != nil && m.compose.editing >= 0 {
-			return ctxComposeStep
+		if m.compose != nil {
+			if m.compose.editing >= 0 {
+				return ctxComposeStep
+			}
+			switch m.compose.focus {
+			case focusInput:
+				return ctxComposeInput
+			case focusOutput:
+				return ctxComposeOutput
+			}
 		}
 		return ctxCompose
 	case screenJobs:
@@ -279,16 +331,35 @@ func (m App) activeContext() keyContext {
 	return ctxGlobal
 }
 
+// footerHints keeps the bottom bar to the three actions that matter on the
+// current screen. The full list stays in the contextual help card.
+const maxFooterHints = 3
+
 func (m App) footerHints() []keyHint {
-	return append([]keyHint(nil), hints[m.activeContext()]...)
+	if m.screen == screenCompose && m.compose != nil &&
+		m.compose.focus == focusOutput && m.compose.isURLFlow() {
+		return []keyHint{{"enter", "continue"}, {"esc", "back"}, {"ctrl+r", "run"}}
+	}
+	all := hints[m.activeContext()]
+	if len(all) > maxFooterHints {
+		all = all[:maxFooterHints]
+	}
+	return append([]keyHint(nil), all...)
 }
 
 func (m App) footerText() string {
 	var text string
 	switch {
+	case m.installer != nil && m.installer.running:
+		return "x cancel · esc cancel"
+	case m.installer != nil:
+		return joinHints(m.footerHints())
 	case m.confirmQuit:
 		return "y quit · q quit · esc stay"
 	case m.confirm != nil:
+		if m.confirm.showToggle {
+			return "space toggle · y confirm · esc cancel"
+		}
 		return "y confirm · esc cancel"
 	case m.prompt != nil:
 		if m.prompt.action == promptOpenFile {
@@ -298,11 +369,13 @@ func (m App) footerText() string {
 	case m.logView != nil && m.logView.searching:
 		return "type search · enter find · esc cancel"
 	case m.logView != nil:
-		return joinHints(hints[ctxJobLog])
+		return joinHints(m.footerHints())
 	case m.palette != nil:
-		return joinHints(hints[ctxPalette])
+		return joinHints(m.footerHints())
+	case m.picker != nil:
+		return joinHints(m.footerHints())
 	case m.showHelp:
-		return joinHints(hints[ctxHelp])
+		return joinHints(m.footerHints())
 	case m.screen == screenJobs && m.jobFiltering:
 		return "type filter · enter open · esc clear"
 	case m.screen == screenAliases && m.aliasFiltering:
@@ -316,10 +389,7 @@ func (m App) footerText() string {
 	default:
 		text = joinHints(m.footerHints())
 	}
-	if m.capturesText() {
-		return "F1 help · " + text
-	}
-	return "? help · " + text
+	return text
 }
 
 func joinHints(hints []keyHint) string {

@@ -23,6 +23,8 @@ type Draft struct {
 	Output    string        `json:"output,omitempty"`
 	SavedName string        `json:"saved_name,omitempty"`
 	Selected  int           `json:"selected,omitempty"`
+	Focus     int           `json:"focus,omitempty"`
+	InPlace   bool          `json:"in_place,omitempty"`
 }
 
 type State struct {

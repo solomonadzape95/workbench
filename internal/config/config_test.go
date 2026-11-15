@@ -18,6 +18,9 @@ func TestLoadMissingFileUsesDefaults(t *testing.T) {
 	if got, want := cfg.General.MaxJobs, 4; got != want {
 		t.Errorf("max jobs = %d, want %d", got, want)
 	}
+	if !cfg.General.ConfirmDiscard {
+		t.Error("confirm discard should default to on")
+	}
 	if got, want := cfg.Output.Collision, CollisionSuffix; got != want {
 		t.Errorf("collision = %q, want %q", got, want)
 	}
@@ -29,6 +32,7 @@ func TestLoadOverridesKeepDefaults(t *testing.T) {
 [general]
 theme = "light"
 max_jobs = 2
+confirm_discard = false
 
 [output]
 collision = "skip"
@@ -54,6 +58,9 @@ glob = "*.png"
 	}
 	if !cfg.General.Notify {
 		t.Error("notify lost its default; partial config must not reset unrelated keys")
+	}
+	if cfg.General.ConfirmDiscard {
+		t.Error("confirm_discard = false was not applied")
 	}
 	if cfg.Output.Template != Defaults().Output.Template {
 		t.Errorf("template = %q, want default %q", cfg.Output.Template, Defaults().Output.Template)
@@ -210,4 +217,33 @@ func contains(values []string, want string) bool {
 		}
 	}
 	return false
+}
+
+func TestOpenCodePaidModelSettings(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	body := `
+[opencode]
+url = "http://127.0.0.1:4096"
+allow_paid = true
+allowed_providers = [" Anthropic ", "openai", "anthropic", ""]
+`
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, warnings := Load(path)
+	if len(warnings) != 0 {
+		t.Fatalf("warnings = %v", warnings)
+	}
+	if !cfg.OpenCode.AllowPaid {
+		t.Error("allow_paid was not loaded")
+	}
+	want := []string{"anthropic", "openai"}
+	if len(cfg.OpenCode.AllowedProviders) != len(want) {
+		t.Fatalf("providers = %v, want %v", cfg.OpenCode.AllowedProviders, want)
+	}
+	for i := range want {
+		if cfg.OpenCode.AllowedProviders[i] != want[i] {
+			t.Fatalf("providers = %v, want %v", cfg.OpenCode.AllowedProviders, want)
+		}
+	}
 }
