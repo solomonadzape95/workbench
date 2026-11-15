@@ -731,7 +731,6 @@ func outputFormat(ext string) string {
 
 func floatPtr(v float64) *float64 { return &v }
 
-// Models returns the static model choices for tests and the API catalog.
 // Styles returns the static style choices.
 func Styles() []core.Option {
 	out := append([]core.Option(nil), styleOptions...)

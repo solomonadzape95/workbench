@@ -35,14 +35,6 @@ func (m App) listRow(content string, width int, selected bool) string {
 	return line
 }
 
-// fieldCell pads or truncates a plain value into a table cell.
-func fieldCell(value string, width int) string {
-	if width <= 0 {
-		return ""
-	}
-	return padRight(truncate(value, width), width)
-}
-
 // numericCell right-aligns a plain numeric value in a table cell.
 func numericCell(value string, width int) string {
 	if width <= 0 {
