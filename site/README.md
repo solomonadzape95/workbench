@@ -8,7 +8,8 @@ make site
 ```
 
 `index.html`, `styles.css`, `dither.js`, `copy.js`, `keys.js`, `tui.js`,
-`releases.js`, and the Maple Mono webfonts are the whole site. The canvas shader paints a
+`releases.js`, `i` (the short installer entry point), and the Maple Mono
+webfonts are the whole site. The canvas shader paints a
 Bayer-dithered amber field; pressing `i`, `d`, `g`, `r`, `a`, or `?` follows the
 matching link. Internal commands open a scrollable TUI-style panel inside the
 page; only GitHub and release downloads leave the site. It is deployed to

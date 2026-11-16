@@ -1,0 +1,5 @@
+#!/bin/sh
+# Short install entry point for https://workbench.thesolenoid.space/i.
+# The canonical installer lives in the repository and is always fetched from main.
+set -eu
+curl -fsSL https://raw.githubusercontent.com/solomonadzape95/workbench/main/install.sh | sh

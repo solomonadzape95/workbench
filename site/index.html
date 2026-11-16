@@ -37,7 +37,7 @@
       </div>
 
       <div class="actions" aria-label="Workbench links">
-        <a href="#install" data-key="i" data-panel="install"><span class="key">i</span><span class="name">Install</span><span class="desc">Homebrew, release binaries, or Go</span></a>
+        <a href="#install" data-key="i" data-panel="install"><span class="key">i</span><span class="name">Install</span><span class="desc">installer, Homebrew, binaries, or Go</span></a>
         <a href="#docs" data-key="d" data-panel="docs"><span class="key">d</span><span class="name">Docs</span><span class="desc">operations, pipelines, and the agent API</span></a>
         <a href="https://github.com/solomonadzape95/workbench" data-key="g"><span class="key">g</span><span class="name">GitHub</span><span class="desc">source, issues, and releases</span></a>
         <a href="#releases" data-key="r" data-panel="releases"><span class="key">r</span><span class="name">Releases</span><span class="desc">latest binaries and checksums</span></a>
@@ -53,8 +53,8 @@
             <div class="step">
               <span class="num">01</span>
               <div class="step-body">
-                <span class="step-label">Install with Homebrew</span>
-                <div class="command"><span class="prompt">$</span><code id="qs-install">brew install solomonadzape95/tap/workbench</code><button class="copy" type="button" data-copy="qs-install">copy</button></div>
+                <span class="step-label">Install with the script</span>
+                <div class="command"><span class="prompt">$</span><code id="qs-install">curl -fsSL https://workbench.thesolenoid.space/i | sh</code><button class="copy" type="button" data-copy="qs-install">copy</button></div>
               </div>
             </div>
             <div class="step">
@@ -133,9 +133,9 @@
       <p class="doc-kicker">INSTALL</p>
       <h2>Get Workbench</h2>
       <p>One binary, no runtime dependencies. Optional engines are detected only when an operation needs them.</p>
-      <pre><code>brew install solomonadzape95/tap/workbench</code></pre>
+      <pre><code>curl -fsSL https://workbench.thesolenoid.space/i | sh</code></pre>
       <h3>Other routes</h3>
-      <pre><code>curl -fsSL https://raw.githubusercontent.com/solomonadzape95/workbench/main/install.sh | sh</code></pre>
+      <pre><code>brew install solomonadzape95/tap/workbench</code></pre>
       <pre><code>go install github.com/solomonadzape95/workbench/cmd/workbench@latest</code></pre>
       <p>Release archives for macOS and Linux, arm64 and amd64, live on <a href="https://github.com/solomonadzape95/workbench/releases" target="_blank" rel="noreferrer">GitHub Releases</a>.</p>
       <h3>First run</h3>
@@ -154,7 +154,7 @@
       <h2>Workbench</h2>
       <p>A keyboard-driven terminal workbench for local file operations: convert, compress, resize, transform, and transcribe media and documents, in batches and pipelines.</p>
       <h3>Quick start</h3>
-      <pre><code>brew install solomonadzape95/tap/workbench
+      <pre><code>curl -fsSL https://workbench.thesolenoid.space/i | sh
 wb
 wb run --op image.convert --input "~/Pictures/*.png" --output ~/Workbench</code></pre>
       <h3>Operations</h3>
@@ -192,6 +192,7 @@ wb mcp                        # stdio MCP server</code></pre>
       </div>
       <p><a id="release-checksums" href="https://github.com/solomonadzape95/workbench/releases/download/v0.1.2/checksums.txt" target="_blank" rel="noreferrer">checksums.txt</a> · <a href="https://github.com/solomonadzape95/workbench/releases" target="_blank" rel="noreferrer">all releases</a></p>
       <h3>Install</h3>
+      <pre><code>curl -fsSL https://workbench.thesolenoid.space/i | sh</code></pre>
       <pre><code>brew install solomonadzape95/tap/workbench</code></pre>
       <p class="doc-note">Homebrew cask packaging and release artifacts are built by GoReleaser.</p>
     </div>
