@@ -10,13 +10,6 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <svg class="sprite" aria-hidden="true">
-    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></symbol>
-    <symbol id="i-audio" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></symbol>
-    <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="m17 10 4-2v8l-4-2z"/></symbol>
-    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></symbol>
-    <symbol id="i-file" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></symbol>
-  </svg>
   <canvas id="dither" aria-hidden="true"></canvas>
   <div class="grain" aria-hidden="true"></div>
 
@@ -45,72 +38,6 @@
         <a href="#help" data-key="?" data-panel="help"><span class="key">?</span><span class="name">Help</span><span class="desc">README and keymap</span></a>
       </div>
 
-      <div class="panels">
-        <section class="panel panel-quickstart">
-          <h2>Quickstart</h2>
-          <p class="panel-lede">Install, launch, and run your first job.</p>
-          <div class="quick">
-            <div class="step">
-              <span class="num">01</span>
-              <div class="step-body">
-                <span class="step-label">Install with the script</span>
-                <div class="command"><span class="prompt">$</span><code id="qs-install">curl -fsSL https://workbench.thesolenoid.space/i | sh</code><button class="copy" type="button" data-copy="qs-install">copy</button></div>
-              </div>
-            </div>
-            <div class="step">
-              <span class="num">02</span>
-              <div class="step-body">
-                <span class="step-label">Launch the TUI</span>
-                <div class="command"><span class="prompt">$</span><code id="qs-launch">wb</code><button class="copy" type="button" data-copy="qs-launch">copy</button></div>
-              </div>
-            </div>
-            <div class="step">
-              <span class="num">03</span>
-              <div class="step-body">
-                <span class="step-label">Run an operation</span>
-                <div class="command"><span class="prompt">$</span><code id="qs-run">wb run --op image.convert <span class="nowrap">--input "*.png"</span></code><button class="copy" type="button" data-copy="qs-run">copy</button></div>
-              </div>
-            </div>
-            <div class="step">
-              <span class="num">04</span>
-              <div class="step-body">
-                <span class="step-label">Check your engines</span>
-                <div class="command"><span class="prompt">$</span><code id="qs-doctor">wb doctor</code><button class="copy" type="button" data-copy="qs-doctor">copy</button></div>
-              </div>
-            </div>
-          </div>
-          <p class="panel-tip"><span class="tip-label">tip</span> Save a chain with <span class="key">ctrl+s</span>, replay it with <span class="key">ctrl+r</span>.</p>
-          <a class="panel-foot" href="#help" data-panel="help">Site keymap <span aria-hidden="true">→</span></a>
-        </section>
-        <section class="panel panel-capabilities">
-          <h2>What it does</h2>
-          <p class="panel-lede">65 operations across five domains.</p>
-          <div class="capabilities">
-            <div class="cap">
-              <div class="cap-title"><svg class="icon"><use href="#i-image"></use></svg><span class="cap-key">image</span></div>
-              <p class="cap-ops">convert · compress · resize · crop · remove background · images to PDF</p>
-            </div>
-            <div class="cap">
-              <div class="cap-title"><svg class="icon"><use href="#i-audio"></use></svg><span class="cap-key">audio</span></div>
-              <p class="cap-ops">convert · normalize · transcribe · extract vocals</p>
-            </div>
-            <div class="cap">
-              <div class="cap-title"><svg class="icon"><use href="#i-video"></use></svg><span class="cap-key">video</span></div>
-              <p class="cap-ops">compress · trim · concat · download · captions</p>
-            </div>
-            <div class="cap">
-              <div class="cap-title"><svg class="icon"><use href="#i-doc"></use></svg><span class="cap-key">document</span></div>
-              <p class="cap-ops">convert · OCR · merge · split · translate · humanize</p>
-            </div>
-            <div class="cap">
-              <div class="cap-title"><svg class="icon"><use href="#i-file"></use></svg><span class="cap-key">file</span></div>
-              <p class="cap-ops">copy · archive · extract · hash · verify · dedupe</p>
-            </div>
-          </div>
-          <p class="cap-extra">pipelines · previews · editor · themes · agent API</p>
-          <a class="panel-foot" href="#docs" data-panel="docs">Browse every operation <span aria-hidden="true">→</span></a>
-        </section>
-      </div>
     </section>
 
   </main>

@@ -19,7 +19,7 @@
   const scale = 4;
   let w = 0;
   let h = 0;
-  let frame = 0;
+  let last = 0;
   let raf = 0;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -32,16 +32,28 @@
   }
 
   function draw(now) {
+    if (!reduce) {
+      raf = requestAnimationFrame(draw);
+    }
+    // The canvas is small and the field is soft; 30fps is enough and saves
+    // battery. The early return happens before creating the image buffer.
+    if (!reduce && now - last < 32) {
+      return;
+    }
+    last = now;
+
     const img = ctx.createImageData(w, h);
     const data = img.data;
-    const t = reduce ? 0 : now * 0.00012;
+    const t = reduce ? 0 : now * 0.00035;
+    const driftX = reduce ? 0 : Math.sin(t * 0.8) * 0.035;
+    const driftY = reduce ? 0 : Math.cos(t * 0.65) * 0.025;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        const nx = x / w - 0.5;
-        const ny = y / h - 0.5;
+        const nx = x / w - 0.5 - driftX;
+        const ny = y / h - 0.5 - driftY;
         const glow = Math.exp(-((nx * nx * 2.6) + (ny * ny * 3.8)) * 4.2);
         const wave = 0.5 + 0.5 * Math.sin(x * 0.065 + t * 2.1 + Math.cos(y * 0.09 - t));
-        const value = glow * 0.62 + wave * 0.055;
+        const value = glow * 0.62 + wave * 0.08;
         const threshold = (bayer[(y & 7) * 8 + (x & 7)] + 0.5) / 64;
         const index = (y * w + x) * 4;
         if (value > threshold * 0.9) {
@@ -54,15 +66,12 @@
       }
     }
     ctx.putImageData(img, 0, 0);
-    frame++;
-    if (!reduce && frame % 2 === 0) {
-      raf = requestAnimationFrame(draw);
-    }
   }
 
   function start() {
     resize();
     cancelAnimationFrame(raf);
+    last = 0;
     if (reduce) {
       draw(0);
     } else {
