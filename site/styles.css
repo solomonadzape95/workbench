@@ -305,6 +305,7 @@ main {
 }
 .doc-assets a:hover { color: var(--accent); }
 .doc-note { margin-top: 22px; color: var(--dim) !important; font-size: 11px !important; }
+.doc-metric { margin: 10px 0 0; color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; }
 .keys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 22px; margin-top: 8px; border-top: 1px solid var(--border-soft); }
 .keys-grid > div { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-soft); color: var(--muted); font-size: 12px; }
 .keys-grid kbd { min-width: 3ch; color: var(--accent); font: inherit; }
@@ -341,3 +342,91 @@ body.tui-open { overflow: hidden; }
   line-height: 1.5;
 }
 .code-copy:hover { color: var(--accent); border-color: var(--accent-dim); }
+
+/* ---------------------------------------------------------------- admin ---
+   Hidden stats page (site/admin.html). Not linked from the site; the gate is
+   obscurity only, and everything it renders is public data. */
+
+.admin-gate {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  min-height: 100vh;
+  padding: 24px;
+}
+.admin-gate[hidden], main.admin[hidden] { display: none; }
+.gate-title { margin: 0 0 14px; color: var(--accent); font-size: 30px; font-weight: 500; }
+.admin-gate form { display: flex; flex-direction: column; gap: 6px; }
+.admin-gate label {
+  color: var(--dim);
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.admin-gate input {
+  width: 24ch;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #0d1218;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.admin-gate input:focus { outline: none; border-color: var(--accent-mid); }
+.gate-hint { margin: 0; color: var(--dim); font-size: 10.5px; }
+.admin-error { min-height: 1.4em; margin: 6px 0 0; color: #e0776b; font-size: 12px; }
+
+main.admin {
+  display: block;
+  align-items: stretch;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: clamp(40px, 8vh, 76px) 22px 96px;
+}
+main.admin h1 { margin: 0 0 6px; color: var(--accent); font-size: clamp(26px, 5vw, 36px); font-weight: 500; }
+.admin-kicker {
+  margin: 0 0 10px;
+  color: var(--accent-dim);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+.admin-sub { max-width: 56ch; margin: 0; color: var(--muted); font-size: 13px; }
+
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1px;
+  margin: 30px 0 10px;
+  border: 1px solid var(--border-soft);
+  background: var(--border-soft);
+}
+.admin-kpi { padding: 14px 16px; background: #0d1218; }
+.admin-kpi span {
+  display: block;
+  color: var(--dim);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.admin-kpi strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--accent-bright);
+  font-size: 23px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-panel { padding: 26px 0 6px; border-top: 1px solid var(--border-soft); }
+.admin-panel:first-of-type { margin-top: 26px; }
+.admin-panel h2 { margin: 0; color: #e2e8ed; font-size: 13px; font-weight: 500; }
+.admin-panel canvas { display: block; width: 100%; height: 190px; margin-top: 16px; }
+#chart-platforms { height: 150px; }
+#chart-brew { height: 140px; }
+.admin-note { margin: 12px 0 0; color: var(--dim); font-size: 11px; }
+.admin-foot { margin-top: 44px; color: var(--dim); font-size: 11px; }
+.admin-foot code { color: var(--muted); }

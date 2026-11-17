@@ -1,4 +1,4 @@
-.PHONY: build run check fmt vet test lint doctor calibrate site clean
+.PHONY: build run check fmt vet test lint doctor calibrate site funnel clean
 
 BIN    := bin/wb
 MODULE := github.com/solomonadzape95/workbench
@@ -27,6 +27,9 @@ calibrate:
 
 site:
 	python3 -m http.server 8080 -d site
+
+funnel:
+	@python3 scripts/funnel.py
 
 fmt:
 	@out=$$(gofmt -l .); if [ -n "$$out" ]; then echo "gofmt needed:"; echo "$$out"; exit 1; fi

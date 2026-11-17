@@ -4,5 +4,6 @@ dist/
 *.out
 coverage.*
 .DS_Store
+__pycache__/
 
 /workbench

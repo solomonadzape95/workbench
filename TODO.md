@@ -259,6 +259,21 @@ Unlocks:
 - [x] Calibration/regression work is tracked by `make calibrate`, `report.md`,
   genre/language false-positive breakdowns, and the humanized-vs-source check.
 
+## Distribution
+
+- [x] Public install funnel: `make funnel` reads GitHub release download counts
+  and Homebrew install counts, and the site's Releases panel shows the download
+  total (`site/funnel.js`). See [`docs/analytics.md`](docs/analytics.md).
+- [x] Cookieless page counts via GoatCounter, gated on an empty
+  `<meta name="wb-analytics">` tag, so the site makes no extra requests until it
+  is switched on.
+- [x] Unlinked `/admin.html` dashboard with dithered charts for downloads,
+  releases, platforms, and Homebrew installs. Password-gated in the browser;
+  public data only, no real access control.
+- [ ] Count real users (activation and retention) with an opt-in, default-off
+  first-run ping. Deferred: it needs the privacy row of `SPEC.md` §10 changed and
+  a `docs/privacy.md` page, so it is a product decision, not a patch.
+
 > Scope guard: `SPEC.md` §16 names scope creep as the top risk and the §6
 > inventory as the contract. Pick at most 2–3 of these per milestone.
 

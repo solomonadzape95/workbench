@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workbench — stats</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="dither" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <section class="admin-gate" id="gate" aria-label="Stats login">
+    <p class="admin-kicker">Workbench / internal</p>
+    <h1 class="gate-title">Stats</h1>
+    <form id="gate-form" autocomplete="off">
+      <label for="gate-password">Password</label>
+      <input id="gate-password" name="password" type="password" placeholder="password" autocomplete="current-password" autofocus>
+      <p class="gate-hint">press enter</p>
+    </form>
+    <p class="admin-error" id="gate-error" role="status"></p>
+  </section>
+
+  <main class="admin" id="dashboard" hidden>
+    <p class="admin-kicker">Workbench / internal</p>
+    <h1>Stats</h1>
+    <p class="admin-sub" id="admin-sub">Installs and downloads, read from GitHub and Homebrew.</p>
+
+    <div class="admin-kpis" id="admin-kpis"></div>
+
+    <section class="admin-panel">
+      <h2>Cumulative downloads</h2>
+      <canvas id="chart-timeline"></canvas>
+      <p class="admin-note">GitHub reports totals per release, not per day, so each step lands on a release date.</p>
+    </section>
+
+    <section class="admin-panel">
+      <h2>Downloads by release</h2>
+      <canvas id="chart-releases"></canvas>
+      <p class="admin-note">Binary archives only; checksums, signatures, and metadata are excluded.</p>
+    </section>
+
+    <section class="admin-panel">
+      <h2>Platforms</h2>
+      <canvas id="chart-platforms"></canvas>
+      <p class="admin-note">Every download is one fetch: updates, CI, and mirrors count too.</p>
+    </section>
+
+    <section class="admin-panel">
+      <h2>Homebrew installs</h2>
+      <canvas id="chart-brew"></canvas>
+      <p class="admin-note" id="brew-note">Tap installs from Homebrew analytics. Users with analytics disabled are not counted.</p>
+    </section>
+
+    <p class="admin-foot">Loaded <span id="admin-updated">—</span> · run <code>make funnel</code> for the same numbers in the terminal.</p>
+  </main>
+
+  <noscript><p class="admin-error">This page needs JavaScript to draw the charts.</p></noscript>
+
+  <script src="dither.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -8,15 +8,32 @@ make site
 ```
 
 `index.html`, `styles.css`, `dither.js`, `copy.js`, `keys.js`, `tui.js`,
-`releases.js`, `i` (the short installer entry point), and the Maple Mono
-webfonts are the whole site. The canvas shader paints a
-Bayer-dithered amber field; pressing `i`, `d`, `g`, `r`, `a`, or `?` follows the
-matching link. Internal commands open a scrollable TUI-style panel inside the
-page; only GitHub and release downloads leave the site. It is deployed to
-GitHub Pages by `.github/workflows/pages.yml` on changes under `site/`.
+`releases.js`, `funnel.js`, `analytics.js`, `admin.html`/`admin.js`, `i` (the
+short installer entry point), and the Maple Mono webfonts are the whole site. The
+canvas shader paints a Bayer-dithered amber field; pressing `i`, `d`, `g`, `r`,
+`a`, or `?` follows the matching link. Internal commands open a scrollable
+TUI-style panel inside the page; only GitHub and release downloads leave the
+site. It is deployed to GitHub Pages by `.github/workflows/pages.yml` on changes
+under `site/`.
 
 The visual language follows the TUI's default OpenCode theme: near-black
 panels, a single amber accent, mono type, rounded borders, and the dither mark.
+
+## Stats page
+
+`admin.html` is an unlinked dashboard: cumulative downloads, downloads per
+release, platform split, and Homebrew installs, drawn with the same Bayer dither
+as the background. Nothing links to it; open `/admin.html` directly.
+
+The gate hashes the password in the browser. That keeps casual visitors out but
+is not access control — the page and every number on it are public, so never put
+private data there. Rotate the password with:
+
+```sh
+printf 'new-password' | shasum -a 256
+```
+
+and replace `PASSWORD_HASH` in `admin.js`.
 
 ## Domain
 

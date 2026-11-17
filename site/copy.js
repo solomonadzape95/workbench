@@ -20,6 +20,12 @@
     if (!ok) throw new Error('copy failed');
   }
 
+  function track(text) {
+    if (!window.workbenchTrack) return;
+    if (text.includes('workbench.thesolenoid.space/i')) window.workbenchTrack('install-curl');
+    else if (text.includes('brew install')) window.workbenchTrack('install-brew');
+  }
+
   function feedback(button, label) {
     const original = button.dataset.label || button.textContent;
     button.dataset.label = original;
@@ -37,7 +43,9 @@
     button.setAttribute('aria-label', 'Copy code');
     button.addEventListener('click', async () => {
       try {
-        await writeClipboard(getText());
+        const text = getText();
+        await writeClipboard(text);
+        track(text);
         feedback(button, 'copied');
       } catch {
         feedback(button, 'failed');
@@ -67,6 +75,7 @@
     if (!target) return;
     try {
       await writeClipboard(target.textContent);
+      track(target.textContent);
       feedback(button, 'copied');
     } catch {
       feedback(button, 'failed');

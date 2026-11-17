@@ -17,6 +17,7 @@
     if (!template) return;
     body.replaceChildren(template.content.cloneNode(true));
     if (window.workbenchEnhanceCopy) window.workbenchEnhanceCopy(body);
+    if (window.workbenchEnhanceFunnel) window.workbenchEnhanceFunnel(body);
     if (window.workbenchEnhanceRelease) window.workbenchEnhanceRelease(body);
     title.textContent = titles[name] || name;
     dialog.showModal();
